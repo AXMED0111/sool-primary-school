@@ -1,150 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>Sool Primary - Fast School Management</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sool Primary School Management</title>
   <style>
-    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-    body{font-family:system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#f0f9ff,#e0f2fe);min-height:100vh;padding:16px;color:#1e293b;line-height:1.4}
-    .container{max-width:520px;margin:0 auto}
-    .card{background:white;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.08);padding:24px;margin-bottom:20px;overflow:hidden}
-    .header{text-align:center;margin-bottom:24px}
-    .header h1{color:#0c4a6e;font-size:clamp(20px,5vw,28px);font-weight:700;margin-bottom:8px}
-    .user-tag{font-size:14px;color:#64748b}
-    .tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
-    .tab-btn{padding:12px 16px;background:#f1f5f9;border:none;border-radius:12px;font-weight:600;font-size:15px;cursor:pointer;transition:all 0.2s;flex:1;min-width:100px;text-align:center;white-space:nowrap}
-    .tab-btn.active{background:#3b82f6;color:white}
-    .tab-btn:active{transform:scale(0.98)}
-    .form-group{margin-bottom:20px}
-    label{display:block;margin-bottom:8px;font-weight:600;font-size:15px}
-    input,select{width:100%;padding:14px;border:1px solid #cbd5e1;border-radius:12px;font-size:16px;background:white;transition:border-color 0.2s}
-    input:focus,select:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.2)}
-    .date-field{display:flex;gap:10px}
-    .btn-today{background:#10b981;color:white;border:none;padding:14px 16px;border-radius:12px;font-weight:600;cursor:pointer;font-size:15px}
-    .btn-today:active{background:#059669}
-    .session-buttons,.status-buttons{display:flex;gap:10px;flex-wrap:wrap}
-    .session-btn,.status-btn{flex:1;padding:14px;border:none;border-radius:12px;font-weight:600;font-size:15px;cursor:pointer;transition:all 0.2s;min-width:80px}
-    .session-btn.active,.status-btn.active{transform:scale(0.97);box-shadow:0 2px 6px rgba(0,0,0,0.15)}
-    .session-btn:not(.active){background:#f1f5f9;color:#475569}
-    .session-btn.active{background:#3b82f6;color:white}
-    .status-btn.present{background:#dcfce7;color:#166534}
-    .status-btn.absent{background:#fee2e2;color:#b91c1c}
-    .status-btn.late{background:#fef3c7;color:#92400e}
-    .status-btn.sick{background:#ede9fe;color:#5b21b6}
-    .status-btn.active{background:#3b82f6;color:white!important}
-    .btn-save,.btn-all-present{background:#0ea5e9;color:white;border:none;width:100%;padding:18px;border-radius:12px;font-size:18px;font-weight:700;cursor:pointer;margin-bottom:15px;transition:background 0.2s}
-    .btn-all-present{background:#10b981!important;padding:16px;font-size:16px}
-    .btn-save:active,.btn-all-present:active{background:#0284c7}
-    .btn-logout,.btn-danger{background:#ef4444;color:white;border:none;width:100%;padding:18px;border-radius:12px;font-size:18px;font-weight:700;cursor:pointer;margin-top:10px}
-    .btn-danger:active,.btn-logout:active{background:#dc2626}
-    .btn-success{background:#10b981;color:white;border:none;width:100%;padding:16px;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:10px}
-    .btn-success:active{background:#059669}
-    .message{padding:14px;border-radius:12px;text-align:center;margin-top:16px;font-weight:600;transition:opacity 0.3s}
-    .success{background:#dcfce7;color:#166534}
-    .error{background:#fee2e2;color:#b91c1c}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px;color:#333}
+    .container{max-width:500px;margin:0 auto}
+    .card{background:white;border-radius:20px;padding:30px;box-shadow:0 20px 40px rgba(0,0,0,0.1);margin-bottom:20px}
+    h1{text-align:center;color:#1e293b;font-size:28px;margin-bottom:10px;font-weight:700}
+    h2,h3{margin:25px 0 15px 0;color:#1e293b;font-weight:600}
+    label{display:block;margin:12px 0 6px;font-weight:600;color:#374151}
+    input,select{width:100%;padding:15px;border:2px solid #e5e7eb;border-radius:12px;font-size:16px;background:#f9fafb;transition:all 0.3s}
+    input:focus,select:focus{border-color:#3b82f6;outline:none;background:white;box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
+    .btn{width:100%;padding:16px;margin:10px 0;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.2s}
+    .btn-primary{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white}
+    .btn-success{background:linear-gradient(135deg,#10b981,#059669);color:white}
+    .btn-danger{background:linear-gradient(135deg,#ef4444,#dc2626);color:white}
+    .btn:active{transform:translateY(1px)}
+    .tabs{display:flex;gap:10px;margin:25px 0;flex-wrap:wrap}
+    .tab-btn{flex:1;padding:14px;border:none;border-radius:12px;background:#f1f5f9;color:#6b7280;font-weight:600;cursor:pointer;transition:all 0.3s;flex-basis:90px}
+    .tab-btn.active{background:#3b82f6;color:white;transform:translateY(-2px)}
+    .tab-content{display:none}
+    .tab-content.active{display:block;animation:slideIn 0.3s ease}
+    @keyframes slideIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .message{padding:15px;border-radius:12px;text-align:center;margin:15px 0;font-weight:600}
+    .success{background:#d1fae5;color:#065f46;border:2px solid #a7f3d0}
+    .error{background:#fee2e2;color:#991b1b;border:2px solid #fca5a5}
     #loginContainer{display:block}
     #appContainer{display:none}
-    .tab-content{display:none}
-    .tab-content.active{display:block}
-    .students-list,.users-list{max-height:400px;overflow-y:auto;margin-top:20px}
-    .student-row,.user-row{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f8fafc;border-radius:8px;margin-bottom:8px}
-    .student-name,.user-name{font-weight:600}
-    .student-status,.user-role{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;min-width:60px;text-align:center;cursor:pointer}
-    .status-present{background:#dcfce7;color:#166534}
-    .status-absent{background:#fee2e2;color:#b91c1c}
-    .status-late{background:#fef3c7;color:#92400e}
-    .status-sick{background:#ede9fe;color:#5b21b6}
-    .role-admin{background:#3b82f6;color:white}
-    .role-teacher{background:#10b981;color:white}
+    .form-row{display:flex;gap:12px}
+    .form-row input{flex:1}
+    .status-buttons,.session-buttons{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+    .status-btn,.session-btn{flex:1;padding:12px;border:2px solid #e5e7eb;border-radius:10px;font-weight:600;cursor:pointer;transition:all 0.2s;min-width:80px}
+    .status-btn.active,.session-btn.active{border-color:#3b82f6;background:#3b82f6;color:white;transform:scale(0.98)}
+    .status-present{background:#dcfce7;border-color:#22c55e;color:#166534}
+    .status-absent{background:#fee2e2;border-color:#ef4444;color:#dc2626}
+    .status-late{background:#fef3c7;border-color:#f59e0b;color:#d97706}
+    .status-sick{background:#e0e7ff;border-color:#6366f1;color:#3730a3}
+    .students-list{max-height:350px;overflow-y:auto;margin:20px 0}
+    .student-row{display:flex;justify-content:space-between;align-items:center;padding:15px;background:#f8fafc;border-radius:12px;margin:8px 0;border-left:4px solid #3b82f6}
+    .student-info{font-weight:600}
+    .user-section{background:#f8fafc;padding:20px;border-radius:12px;margin:20px 0}
+    .user-row{display:flex;justify-content:space-between;align-items:center;padding:12px;background:white;border-radius:8px;margin:8px 0;border-left:3px solid #10b981}
   </style>
 </head>
 <body>
+  <!-- LOGIN -->
   <div class="container" id="loginContainer">
     <div class="card">
-      <div class="header">
-        <h1>🏫 Sool Primary</h1>
-        <p style="color:#64748b;">Staff Login</p>
-      </div>
+      <h1>🏫 Sool Primary School</h1>
       <form id="loginForm">
-        <div class="form-group">
-          <label>Username</label>
-          <input type="text" id="username" autocomplete="off" placeholder="A, M, S, I, Z, AHMED" required/>
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input type="password" id="password" placeholder="Try A/3245" required/>
-        </div>
-        <button type="submit" class="btn-save">🚀 Sign In</button>
-        <div id="loginError" class="message error" style="display:none;"></div>
+        <label>👤 Username</label>
+        <input type="text" id="username" placeholder="A, M, S, I, Z, AHMED" required>
+        <label>🔑 Password</label>
+        <input type="password" id="password" placeholder="Enter password" required>
+        <button type="submit" class="btn btn-primary">Login →</button>
+        <div id="loginMessage" class="message" style="display:none"></div>
       </form>
+      
+      <div style="background:#f0f9ff;padding:20px;border-radius:12px;margin-top:25px;font-size:14px">
+        <strong>📋 Test Credentials:</strong>
+        <div style="margin-top:10px">
+          <strong>Teachers:</strong> A/3245 | M/5467 | S/7689 | I/8789 | Z/9890<br>
+          <strong>Admin:</strong> AHMED/6884433@@
+        </div>
+      </div>
     </div>
   </div>
 
+  <!-- MAIN APP -->
   <div class="container" id="appContainer">
     <div class="card">
-      <div class="header">
-        <h1>📚 Sool Primary</h1>
-        <div class="user-tag" id="userDisplay"></div>
+      <div style="text-align:center;padding:15px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;border-radius:12px 12px 0 0;margin:-30px -30px 20px -30px">
+        <h1>📚 School Dashboard</h1>
+        <div id="userInfo"></div>
       </div>
-      <div class="tabs" id="mainTabs"></div>
-      <div id="globalMessage" class="message" style="display:none;"></div>
+
+      <div class="tabs" id="tabs"></div>
+      <div id="globalMessage" class="message" style="display:none"></div>
 
       <!-- ATTENDANCE TAB -->
-      <div id="attendanceTab" class="tab-content">
-        <div class="form-group">
-          <label>Date</label>
-          <div class="date-field">
-            <input type="date" id="attDate"/>
-            <button type="button" class="btn-today" onclick="setToday()">Today</button>
-          </div>
+      <div id="attendanceTab" class="tab-content active">
+        <label>Date:</label>
+        <div class="form-row">
+          <input type="date" id="attDate">
+          <button type="button" class="btn btn-success" onclick="setToday()" style="width:120px;padding:15px 10px">Today</button>
         </div>
-        <div class="form-group">
-          <label>Session</label>
-          <div class="session-buttons">
-            <button type="button" class="session-btn active" data-session="morning">Morning</button>
-            <button type="button" class="session-btn" data-session="after_break">After Break</button>
-          </div>
+        
+        <label>Session:</label>
+        <div class="session-buttons">
+          <button class="session-btn active" data-session="morning">Morning</button>
+          <button class="session-btn" data-session="afternoon">Afternoon</button>
         </div>
-        <div class="form-group">
-          <label>Class</label>
-          <select id="attClass" onchange="loadTodayAttendance()">
-            <option value="">Select Class</option>
-            <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
-            <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
-            <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
-            <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
-          </select>
+        
+        <label>Class:</label>
+        <select id="attClass">
+          <option value="">Select Class</option>
+          <option value="1aad">Grade 1 - 1aad</option>
+          <option value="2aad">Grade 2 - 2aad</option>
+          <option value="3aad">Grade 3 - 3aad</option>
+          <option value="4aad">Grade 4 - 4aad</option>
+          <option value="5aad">Grade 5 - 5aad</option>
+          <option value="6aad">Grade 6 - 6aad</option>
+          <option value="7aad">Grade 7 - 7aad</option>
+          <option value="8aad">Grade 8 - 8aad</option>
+        </select>
+
+        <button class="btn btn-success" onclick="markAllPresent()" style="margin:20px 0">📋 Mark All Present</button>
+
+        <h3>Single Entry:</h3>
+        <label>Roll Number:</label>
+        <input type="number" id="attRoll" placeholder="Enter roll number" min="1">
+        <label>Student Name:</label>
+        <input type="text" id="attName" placeholder="Will auto-fill">
+        
+        <label>Status:</label>
+        <div class="status-buttons">
+          <button class="status-btn present active" data-status="present">Present</button>
+          <button class="status-btn absent" data-status="absent">Absent</button>
+          <button class="status-btn late" data-status="late">Late</button>
+          <button class="status-btn sick" data-status="sick">Sick</button>
         </div>
-        <button type="button" class="btn-all-present" onclick="markAllPresent()">📋 Mark All Present</button>
-        <div id="singleEntry">
-          <div class="form-group">
-            <label>Roll #</label>
-            <input type="number" id="attRoll" min="1" placeholder="Enter roll"/>
-          </div>
-          <div class="form-group">
-            <label>Name</label>
-            <input type="text" id="attName" placeholder="Auto-filled"/>
-          </div>
-          <div class="form-group">
-            <label>Status</label>
-            <div class="status-buttons">
-              <button type="button" class="status-btn present active" data-status="present">Present</button>
-              <button type="button" class="status-btn absent" data-status="absent">Absent</button>
-              <button type="button" class="status-btn late" data-status="late">Late</button>
-              <button type="button" class="status-btn sick" data-status="sick">Sick</button>
-            </div>
-          </div>
-          <button type="button" class="btn-save" onclick="saveSingleAttendance()">Save Single</button>
-        </div>
-        <div id="todayAttendance" class="students-list" style="display:none;"></div>
-        <button type="button" class="btn-logout" onclick="logout()">Logout</button>
+        <button class="btn btn-primary" onclick="saveAttendance()">💾 Save Attendance</button>
+
+        <div id="attendanceList" class="students-list" style="display:none"></div>
+        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
       </div>
 
-      <!-- REGISTER TAB -->
+      <!-- STUDENT REGISTRATION (ADMIN ONLY) -->
       <div id="registerTab" class="tab-content">
-        <h3 style="margin-bottom:20px;font-size:20px;">📝 Register Student</h3>
-        <div class="form-group"><label>Name *</label><input type="text" id="regName"/></div>
-        <div class="form-group"><label>Mother *</label><input type="text" id="regMother"/></div>
-        <div class="form-group"><label>DOB *</label><input type="date" id="regDOB"/></div>
-        <div class
+        <h2>📝 Student Registration</h2>
+        <label>Full Name:</label><input type="text" id="regName">
+        <label>Mother's Name:</label><input type="text" id="regMother">
+        <label>Date of Birth:</label><input type="date" id="regDob">
+        <label>Place of Birth:</label><input type="text" id="regPob" placeholder="e.g. Garowe">
+        <label>Contact Number:</label><input type="tel" id="regPhone" placeholder="+252 61...">
+        <label>Class:</label>
+        <select id="regClass">
+          <option value="">Select Class</option>
+          <option value="1aad">Grade 1 - 1aad</option>
+          <option value="2aad">Grade 2 - 2aad</option>
+          <option value="3aad">Grade 3 - 3aad</option>
+          <option value="4aad">Grade 4 - 4aad</option>
+          <option value="5aad">Grade 5 - 5aad</option>
+          <option value="6aad">Grade 6 - 6aad</option>
+          <option value="7aad">Grade 7 - 7aad</option>
+          <option value="8aad">Grade 8 - 8aad</option>
+        </select>
+        <button class="btn btn-primary" onclick="registerStudent()">➕ Register Student</button>
+        <button class="btn btn-danger" onclick="logout()">Logout</button>
+      </div>
+
+      <!-- FEE MANAGEMENT (ADMIN ONLY) -->
+      <div id="feeTab" class="tab-content">
+        <h2>💰 Fee Management</h2>
+        <label>Student Name:</label><input type="text" id="feeStudent">
+        <label>Roll Number:</label><input type="text" id="feeRoll">
+        <label>Class:</label>
+        <select id="feeClass">
+          <option value="">Select Class</option>
+          <option value="1aad">Grade 1 - 1aad</option>
+         
