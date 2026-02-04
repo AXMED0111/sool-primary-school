@@ -44,9 +44,9 @@
     .status-btn.sick { background: #ede9fe; color: #5b21b6; }
     .status-btn.active { background: #3b82f6; color: white !important; }
 
-    .btn-save { background: #0ea5e9; color: white; border: none; width: 100%; padding: 18px; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; margin-bottom: 15px; }
+    .btn-save, .btn-all-present { background: #0ea5e9; color: white; border: none; width: 100%; padding: 18px; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; margin-bottom: 15px; }
+    .btn-all-present { background: #10b981; padding: 16px; font-size: 16px; }
     .btn-save:active, .btn-all-present:active { background: #0284c7; }
-    .btn-all-present { background: #10b981; color: white; border: none; width: 100%; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 15px; }
     .btn-logout { background: #ef4444; color: white; border: none; width: 100%; padding: 18px; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; }
     .btn-logout:active { background: #dc2626; }
 
@@ -130,10 +130,8 @@
           </select>
         </div>
 
-        <!-- MARK ALL PRESENT BUTTON -->
         <button type="button" class="btn-all-present" onclick="markAllPresent()" id="markAllBtn" style="display:none;">📋 Mark All Present</button>
 
-        <!-- SINGLE ENTRY FORM -->
         <div id="singleEntry" style="display:block;">
           <div class="form-group">
             <label>Roll Number *</label>
@@ -155,9 +153,92 @@
           <button type="button" class="btn-save" onclick="saveSingleAttendance()">Save Single</button>
         </div>
 
-        <!-- TODAY'S ATTENDANCE LIST (for editing) -->
         <div id="todayAttendance" class="students-list" style="display:none;"></div>
+        <button type="button" class="btn-logout" onclick="logout()">Logout</button>
+      </div>
 
+      <!-- ADMIN TABS -->
+      <div id="registerTab" class="tab-content" style="display:none;">
+        <h3 style="margin-bottom:20px;font-size:20px;">📝 Register Student</h3>
+        <div class="form-group">
+          <label>Student Name *</label>
+          <input type="text" id="regName" required />
+        </div>
+        <div class="form-group">
+          <label>Mother's Name *</label>
+          <input type="text" id="regMother" required />
+        </div>
+        <div class="form-group">
+          <label>Date of Birth *</label>
+          <input type="date" id="regDOB" required />
+        </div>
+        <div class="form-group">
+          <label>Place of Birth *</label>
+          <input type="text" id="regPOB" placeholder="e.g., Garowe" required />
+        </div>
+        <div class="form-group">
+          <label>School Transferred From</label>
+          <input type="text" id="regSchool" placeholder="Optional" />
+        </div>
+        <div class="form-group">
+          <label>Contact Info *</label>
+          <input type="text" id="regContact" placeholder="+252 61 2345678" required />
+        </div>
+        <div class="form-group">
+          <label>Class *</label>
+          <select id="regClass" required>
+            <option value="">Select Class</option>
+            <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
+            <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
+            <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
+            <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
+          </select>
+        </div>
+        <button type="button" class="btn-save" onclick="registerStudent()">Register Student</button>
+        <button type="button" class="btn-logout" onclick="logout()">Logout</button>
+      </div>
+
+      <div id="feeTab" class="tab-content" style="display:none;">
+        <h3 style="margin-bottom:20px;font-size:20px;">💰 Fee Payment</h3>
+        <div class="form-group">
+          <label>Student Name *</label>
+          <input type="text" id="feeName" required />
+        </div>
+        <div class="form-group">
+          <label>Roll Number *</label>
+          <input type="text" id="feeRoll" required />
+        </div>
+        <div class="form-group">
+          <label>Class *</label>
+          <select id="feeClass" required>
+            <option value="">Select Class</option>
+            <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
+            <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
+            <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
+            <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Month/Year (YYYY-MM) *</label>
+          <input type="month" id="feeMonth" required />
+        </div>
+        <div class="form-group">
+          <label>Monthly Fee (USD)</label>
+          <input type="number" id="feeMonthly" value="5" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label>Exam Fee (USD)</label>
+          <input type="number" id="feeExam" value="0" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label>Paid Amount (USD) *</label>
+          <input type="number" id="feePaid" step="0.01" required />
+        </div>
+        <div class="form-group">
+          <label>Payment Date *</label>
+          <input type="date" id="feeDate" required />
+        </div>
+        <button type="button" class="btn-save" onclick="recordFee()">Record Payment</button>
         <button type="button" class="btn-logout" onclick="logout()">Logout</button>
       </div>
     </div>
@@ -179,6 +260,7 @@
     function setToday() {
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('attDate').value = today;
+      document.getElementById('feeDate') && (document.getElementById('feeDate').value = today);
       loadTodayAttendance();
     }
 
@@ -190,17 +272,20 @@
       setTimeout(() => msg.style.display = 'none', 3000);
     }
 
-    function clearForm() {
-      document.getElementById('attDate').value = '';
-      document.getElementById('attClass').value = '';
-      document.getElementById('attRoll').value = '';
+    function clearAttendanceForm() {
+      document.getElementById('attRoll').value = '';  // ✅ ROLL CLEARED
       document.getElementById('attName').value = '';
-      document.querySelector('.session-btn.active').click();
       document.querySelector('.status-btn.active').click();
       document.getElementById('markAllBtn').style.display = 'none';
       document.getElementById('singleEntry').style.display = 'block';
       document.getElementById('todayAttendance').style.display = 'none';
-      document.getElementById('todayAttendance').innerHTML = '';
+    }
+
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.getElementById(tabName + 'Tab').classList.add('active');
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
     }
 
     async function loadTodayAttendance() {
@@ -233,9 +318,7 @@
         const statusClass = `status-${student.status}`;
         html += `
           <div class="student-row">
-            <div>
-              <div class="student-name">${student.roll_number} - ${student.student_name}</div>
-            </div>
+            <div class="student-name">${student.roll_number} - ${student.student_name}</div>
             <div class="student-status ${statusClass}" onclick="updateStudentStatus('${student.roll_number}', '${student.status}')">
               ${student.status.charAt(0).toUpperCase() + student.status.slice(1)}
             </div>
@@ -283,7 +366,7 @@
         const result = await res.json();
         if (result.success !== false) {
           showMessage('✅ Attendance saved!');
-          clearForm();
+          clearAttendanceForm();  // ✅ CLEARS ROLL NUMBER
         } else {
           showMessage('❌ ' + result.error, true);
         }
@@ -309,7 +392,7 @@
         const res = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
         const result = await res.json();
         if (result.success) {
-          loadTodayAttendance(); // Refresh list
+          loadTodayAttendance();
           showMessage('✅ Status updated!');
         }
       } catch(e) {
@@ -317,7 +400,56 @@
       }
     }
 
-    // Event Listeners & Init
+    async function registerStudent() {
+      if (userRole !== 'admin') { showMessage('❌ Admin only!', true); return; }
+      const formData = new FormData();
+      formData.append('form_type', 'registration');
+      formData.append('student_name', document.getElementById('regName').value);
+      formData.append('mother_name', document.getElementById('regMother').value);
+      formData.append('date_of_birth', document.getElementById('regDOB').value);
+      formData.append('place_of_birth', document.getElementById('regPOB').value);
+      formData.append('school_transferred_from', document.getElementById('regSchool').value);
+      formData.append('contact_info', document.getElementById('regContact').value);
+      formData.append('class', document.getElementById('regClass').value);
+
+      try {
+        const res = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+        const result = await res.json();
+        if (result.success !== false) {
+          showMessage('✅ Student registered!');
+          document.getElementById('registerTab').querySelectorAll('input, select').forEach(el => el.value = '');
+        }
+      } catch(e) {
+        showMessage('❌ Registration failed', true);
+      }
+    }
+
+    async function recordFee() {
+      if (userRole !== 'admin') { showMessage('❌ Admin only!', true); return; }
+      const formData = new FormData();
+      formData.append('form_type', 'fee_payment');
+      formData.append('student_name', document.getElementById('feeName').value);
+      formData.append('roll_number', document.getElementById('feeRoll').value);
+      formData.append('class', document.getElementById('feeClass').value);
+      formData.append('month_year', document.getElementById('feeMonth').value);
+      formData.append('monthly_fee', document.getElementById('feeMonthly').value);
+      formData.append('exam_fee', document.getElementById('feeExam').value);
+      formData.append('paid_amount', document.getElementById('feePaid').value);
+      formData.append('payment_date', document.getElementById('feeDate').value);
+      formData.append('recorded_by', currentUser);
+
+      try {
+        const res = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+        const result = await res.json();
+        if (result.success !== false) {
+          showMessage('✅ Fee recorded!');
+          document.getElementById('feeTab').querySelectorAll('input, select').forEach(el => el.value = '');
+        }
+      } catch(e) {
+        showMessage('❌ Fee recording failed', true);
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.session-btn, .status-btn').forEach(btn => {
         btn.onclick = () => {
@@ -343,7 +475,17 @@
         document.getElementById('userDisplay').textContent = `Logged in: ${username} (${user.role.toUpperCase()})`;
         document.getElementById('loginContainer').style.display = 'none';
         document.getElementById('appContainer').style.display = 'block';
-        document.getElementById('mainTabs').innerHTML = '<button class="tab-btn active" onclick="showTab(\'attendance\')">Attendance</button>';
+        
+        // ✅ ADMIN SEES ALL TABS
+        if (userRole === 'admin') {
+          document.getElementById('mainTabs').innerHTML = `
+            <button class="tab-btn" onclick="showTab('register')">Register</button>
+            <button class="tab-btn active" onclick="showTab('attendance')">Attendance</button>
+            <button class="tab-btn" onclick="showTab('fee')">Fees</button>
+          `;
+        } else {
+          document.getElementById('mainTabs').innerHTML = '<button class="tab-btn active" onclick="showTab(\'attendance\')">Attendance</button>';
+        }
         document.getElementById('attendanceTab').classList.add('active');
       } else {
         showMessage('❌ Invalid credentials', true);
