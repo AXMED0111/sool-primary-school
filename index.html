@@ -44,6 +44,41 @@
     .student-info{font-weight:600}
     .user-section{background:#f8fafc;padding:20px;border-radius:12px;margin:20px 0}
     .user-row{display:flex;justify-content:space-between;align-items:center;padding:12px;background:white;border-radius:8px;margin:8px 0;border-left:3px solid #10b981}
+    
+    /* Statistics Cards */
+    .stats-container{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:15px;margin:20px 0}
+    .stat-card{background:linear-gradient(135deg,#f3f4f6,#e5e7eb);border-radius:12px;padding:20px;text-align:center;box-shadow:0 4px 6px rgba(0,0,0,0.1);border-left:4px solid #3b82f6}
+    .stat-card.active{background:linear-gradient(135deg,#dcfce7,#a7f3d0);border-left-color:#22c55e}
+    .stat-card.inactive{background:linear-gradient(135deg,#fef3c7,#fde68a);border-left-color:#f59e0b}
+    .stat-card.dropout{background:linear-gradient(135deg,#fee2e2,#fecaca);border-left-color:#ef4444}
+    .stat-number{font-size:32px;font-weight:800;margin:10px 0;color:#1e293b}
+    .stat-label{font-size:14px;color:#6b7280;font-weight:600}
+    
+    /* Chart Container */
+    .chart-container{background:#f8fafc;border-radius:12px;padding:20px;margin:20px 0;text-align:center}
+    .chart-placeholder{width:100%;height:200px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px}
+    
+    /* User Management Styles */
+    .user-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;margin:20px 0}
+    .user-card{background:white;border-radius:12px;padding:15px;border:2px solid #e5e7eb;box-shadow:0 2px 4px rgba(0,0,0,0.05);transition:all 0.3s}
+    .user-card:hover{transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.1);border-color:#3b82f6}
+    .user-role{display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;margin-top:5px}
+    .role-admin{background:#fee2e2;color:#dc2626}
+    .role-teacher{background:#dbeafe;color:#1e40af}
+    .role-student{background:#dcfce7;color:#166534}
+    .user-actions{display:flex;gap:8px;margin-top:10px}
+    .user-btn{flex:1;padding:8px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s}
+    .btn-edit{background:#dbeafe;color:#1e40af}
+    .btn-delete{background:#fee2e2;color:#dc2626}
+    .btn-activate{background:#dcfce7;color:#166534}
+    
+    /* Toggle Switch */
+    .toggle-switch{position:relative;display:inline-block;width:50px;height:24px;margin:5px 0}
+    .toggle-switch input{opacity:0;width:0;height:0}
+    .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#e5e7eb;transition:.4s;border-radius:24px}
+    .slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background-color:white;transition:.4s;border-radius:50%}
+    input:checked + .slider{background-color:#22c55e}
+    input:checked + .slider:before{transform:translateX(26px)}
   </style>
 </head>
 <body>
@@ -150,7 +185,87 @@
           <option value="8aad">Grade 8 - 8aad</option>
         </select>
         <button class="btn btn-primary" onclick="registerStudent()">➕ Register Student</button>
-        <button class="btn btn-danger" onclick="logout()">Logout</button>
+        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
+      </div>
+
+      <!-- STUDENT STATISTICS TAB -->
+      <div id="statsTab" class="tab-content">
+        <h2>📊 Student Statistics</h2>
+        
+        <div class="stats-container">
+          <div class="stat-card active">
+            <div class="stat-label">Active Students</div>
+            <div class="stat-number" id="activeCount">0</div>
+          </div>
+          <div class="stat-card inactive">
+            <div class="stat-label">Inactive Students</div>
+            <div class="stat-number" id="inactiveCount">0</div>
+          </div>
+          <div class="stat-card dropout">
+            <div class="stat-label">Dropout Students</div>
+            <div class="stat-number" id="dropoutCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Students</div>
+            <div class="stat-number" id="totalCount">0</div>
+          </div>
+        </div>
+        
+        <div class="chart-container">
+          <h3 style="margin-bottom:15px;color:#1e293b">Student Status Distribution</h3>
+          <div class="chart-placeholder" id="statsChart">
+            Student Status Chart
+          </div>
+        </div>
+        
+        <div style="background:#f8fafc;padding:20px;border-radius:12px;margin:20px 0">
+          <h3 style="margin-bottom:15px;color:#1e293b">📊 Detailed Breakdown</h3>
+          <div style="display:flex;justify-content:space-between;margin:10px 0">
+            <span style="font-weight:600">Active:</span>
+            <span id="activeDetail">0 students</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin:10px 0">
+            <span style="font-weight:600">Inactive:</span>
+            <span id="inactiveDetail">0 students</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin:10px 0">
+            <span style="font-weight:600">Dropout:</span>
+            <span id="dropoutDetail">0 students</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin:10px 0;border-top:2px solid #e5e7eb;padding-top:10px">
+            <span style="font-weight:700">Total:</span>
+            <span style="font-weight:700" id="totalDetail">0 students</span>
+          </div>
+        </div>
+        
+        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
+      </div>
+
+      <!-- USER MANAGEMENT TAB (ADMIN ONLY) -->
+      <div id="usersTab" class="tab-content">
+        <h2>👥 User Management</h2>
+        
+        <div style="background:#f0f9ff;padding:15px;border-radius:12px;margin-bottom:20px">
+          <h3 style="margin-bottom:10px;color:#1e40af">➕ Add New User</h3>
+          <label>Username:</label>
+          <input type="text" id="newUsername" placeholder="Enter username">
+          <label>Password:</label>
+          <input type="password" id="newPassword" placeholder="Enter password">
+          <label>Role:</label>
+          <select id="newUserRole">
+            <option value="teacher">Teacher</option>
+            <option value="admin">Admin</option>
+            <option value="student">Student</option>
+          </select>
+          <button class="btn btn-success" onclick="addNewUser()" style="margin-top:10px">➕ Create User</button>
+        </div>
+        
+        <h3 style="margin:25px 0 15px 0;color:#1e293b">📋 All Users</h3>
+        <div class="user-grid" id="usersList">
+          <!-- Users will be populated here -->
+        </div>
+        
+        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
       </div>
 
       <!-- FEE MANAGEMENT (ADMIN ONLY) -->
@@ -162,4 +277,316 @@
         <select id="feeClass">
           <option value="">Select Class</option>
           <option value="1aad">Grade 1 - 1aad</option>
-         
+          <option value="2aad">Grade 2 - 2aad</option>
+          <option value="3aad">Grade 3 - 3aad</option>
+          <option value="4aad">Grade 4 - 4aad</option>
+          <option value="5aad">Grade 5 - 5aad</option>
+          <option value="6aad">Grade 6 - 6aad</option>
+          <option value="7aad">Grade 7 - 7aad</option>
+          <option value="8aad">Grade 8 - 8aad</option>
+        </select>
+        <label>Amount:</label>
+        <input type="number" id="feeAmount" placeholder="Enter amount">
+        <button class="btn btn-primary" onclick="processFee()">✅ Process Payment</button>
+        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Sample data for demonstration
+    let students = [
+      { id: 1, name: "Ahmed Ali", class: "1aad", status: "active" },
+      { id: 2, name: "Fatima Hassan", class: "2aad", status: "active" },
+      { id: 3, name: "Mohamed Yusuf", class: "3aad", status: "inactive" },
+      { id: 4, name: "Aisha Ibrahim", class: "1aad", status: "active" },
+      { id: 5, name: "Omar Farah", class: "4aad", status: "dropout" },
+      { id: 6, name: "Safia Ahmed", class: "2aad", status: "active" },
+      { id: 7, name: "Ibrahim Hassan", class: "5aad", status: "active" },
+      { id: 8, name: "Layla Mohamed", class: "3aad", status: "inactive" },
+      { id: 9, name: "Yusuf Ali", class: "6aad", status: "active" },
+      { id: 10, name: "Hodan Farah", class: "1aad", status: "dropout" }
+    ];
+
+    let users = [
+      { id: 1, username: "AHMED", role: "admin", active: true },
+      { id: 2, username: "A", role: "teacher", active: true },
+      { id: 3, username: "M", role: "teacher", active: true },
+      { id: 4, username: "S", role: "teacher", active: true },
+      { id: 5, username: "I", role: "teacher", active: true },
+      { id: 6, username: "Z", role: "teacher", active: true }
+    ];
+
+    let currentUser = null;
+
+    // Initialize today's date
+    function setToday() {
+      document.getElementById('attDate').valueAsDate = new Date();
+    }
+    setToday();
+
+    // Session button handlers
+    document.querySelectorAll('.session-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.session-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // Status button handlers
+    document.querySelectorAll('.status-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    // LOGIN HANDLER
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const username = document.getElementById('username').value.trim().toUpperCase();
+      const password = document.getElementById('password').value.trim();
+      const msg = document.getElementById('loginMessage');
+      
+      // Valid credentials per spec
+      const TEACHERS = { 'A':'3245','M':'5467','S':'7689','I':'8789','Z':'9890' };
+      const ADMIN = { 'AHMED':'6884433@@' };
+      
+      let userType = '';
+      
+      // Validate credentials
+      if (ADMIN[username] && ADMIN[username] === password) {
+        userType = 'Admin';
+        currentUser = { username, role: 'admin' };
+      } else if (TEACHERS[username] && TEACHERS[username] === password) {
+        userType = 'Teacher';
+        currentUser = { username, role: 'teacher' };
+      }
+      
+      if (userType) {
+        // Successful login
+        document.getElementById('userInfo').textContent = `${userType}: ${username}`;
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'block';
+        msg.style.display = 'none';
+        
+        // Initialize tabs
+        initTabs(userType);
+        
+        // Load statistics
+        loadStudentStatistics();
+        
+        // Load users (admin only)
+        if (userType === 'Admin') {
+          loadUsers();
+        }
+      } else {
+        // Failed login
+        msg.textContent = '❌ Invalid credentials! Check test credentials below.';
+        msg.className = 'message error';
+        msg.style.display = 'block';
+      }
+    });
+
+    // Initialize tabs based on user role
+    function initTabs(userType) {
+      const tabsContainer = document.getElementById('tabs');
+      tabsContainer.innerHTML = '';
+      
+      // Common tabs
+      addTab('attendanceTab', '📅 Attendance', true);
+      
+      if (userType === 'Admin') {
+        addTab('registerTab', '📝 Register');
+        addTab('statsTab', '📊 Statistics');
+        addTab('usersTab', '👥 Users');
+        addTab('feeTab', '💰 Fees');
+      }
+      
+      // Set up tab click handlers
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetTab = btn.dataset.tab;
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById(targetTab).classList.add('active');
+        });
+      });
+    }
+
+    function addTab(tabId, label, isActive = false) {
+      const tabsContainer = document.getElementById('tabs');
+      const tabBtn = document.createElement('button');
+      tabBtn.className = `tab-btn ${isActive ? 'active' : ''}`;
+      tabBtn.textContent = label;
+      tabBtn.dataset.tab = tabId;
+      tabsContainer.appendChild(tabBtn);
+      
+      if (isActive) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+      }
+    }
+
+    // Load student statistics
+    function loadStudentStatistics() {
+      const active = students.filter(s => s.status === 'active').length;
+      const inactive = students.filter(s => s.status === 'inactive').length;
+      const dropout = students.filter(s => s.status === 'dropout').length;
+      const total = students.length;
+      
+      document.getElementById('activeCount').textContent = active;
+      document.getElementById('inactiveCount').textContent = inactive;
+      document.getElementById('dropoutCount').textContent = dropout;
+      document.getElementById('totalCount').textContent = total;
+      
+      document.getElementById('activeDetail').textContent = `${active} students`;
+      document.getElementById('inactiveDetail').textContent = `${inactive} students`;
+      document.getElementById('dropoutDetail').textContent = `${dropout} students`;
+      document.getElementById('totalDetail').textContent = `${total} students`;
+      
+      // Update chart placeholder with percentages
+      const activePct = ((active / total) * 100).toFixed(1);
+      const inactivePct = ((inactive / total) * 100).toFixed(1);
+      const dropoutPct = ((dropout / total) * 100).toFixed(1);
+      
+      document.getElementById('statsChart').innerHTML = `
+        <div style="text-align:left">
+          <div style="margin:10px 0">
+            <span style="display:inline-block;width:100px;font-weight:600">Active:</span>
+            <div style="background:#22c55e;width:${activePct}%;height:20px;border-radius:10px;display:inline-block"></div>
+            <span style="margin-left:10px">${activePct}%</span>
+          </div>
+          <div style="margin:10px 0">
+            <span style="display:inline-block;width:100px;font-weight:600">Inactive:</span>
+            <div style="background:#f59e0b;width:${inactivePct}%;height:20px;border-radius:10px;display:inline-block"></div>
+            <span style="margin-left:10px">${inactivePct}%</span>
+          </div>
+          <div style="margin:10px 0">
+            <span style="display:inline-block;width:100px;font-weight:600">Dropout:</span>
+            <div style="background:#ef4444;width:${dropoutPct}%;height:20px;border-radius:10px;display:inline-block"></div>
+            <span style="margin-left:10px">${dropoutPct}%</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // Load users list
+    function loadUsers() {
+      const usersList = document.getElementById('usersList');
+      usersList.innerHTML = '';
+      
+      users.forEach(user => {
+        const userCard = document.createElement('div');
+        userCard.className = 'user-card';
+        userCard.innerHTML = `
+          <div style="font-weight:700;font-size:16px">${user.username}</div>
+          <div class="user-role role-${user.role}">${user.role.charAt(0).toUpperCase() + user.role.slice(1)}</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:5px">
+            Status: ${user.active ? '✅ Active' : '❌ Inactive'}
+          </div>
+          <div class="user-actions">
+            <button class="user-btn btn-edit" onclick="editUser(${user.id})">✏️ Edit</button>
+            <button class="user-btn btn-${user.active ? 'delete' : 'activate'}" onclick="toggleUserStatus(${user.id})">
+              ${user.active ? '❌ Deactivate' : '✅ Activate'}
+            </button>
+          </div>
+        `;
+        usersList.appendChild(userCard);
+      });
+    }
+
+    // Add new user
+    function addNewUser() {
+      const username = document.getElementById('newUsername').value.trim().toUpperCase();
+      const password = document.getElementById('newPassword').value.trim();
+      const role = document.getElementById('newUserRole').value;
+      
+      if (!username || !password) {
+        showMessage('Please fill in all fields', 'error');
+        return;
+      }
+      
+      // Check if username already exists
+      if (users.some(u => u.username === username)) {
+        showMessage('Username already exists!', 'error');
+        return;
+      }
+      
+      const newUser = {
+        id: users.length + 1,
+        username: username,
+        role: role,
+        active: true
+      };
+      
+      users.push(newUser);
+      loadUsers();
+      
+      // Clear form
+      document.getElementById('newUsername').value = '';
+      document.getElementById('newPassword').value = '';
+      
+      showMessage('User created successfully!', 'success');
+    }
+
+    // Toggle user status
+    function toggleUserStatus(userId) {
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        user.active = !user.active;
+        loadUsers();
+        showMessage(`User ${user.active ? 'activated' : 'deactivated'} successfully!`, 'success');
+      }
+    }
+
+    // Edit user (placeholder)
+    function editUser(userId) {
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        alert(`Edit user: ${user.username}\nRole: ${user.role}\nStatus: ${user.active ? 'Active' : 'Inactive'}`);
+      }
+    }
+
+    // Show message helper
+    function showMessage(text, type) {
+      const msg = document.getElementById('globalMessage');
+      msg.textContent = text;
+      msg.className = `message ${type}`;
+      msg.style.display = 'block';
+      
+      setTimeout(() => {
+        msg.style.display = 'none';
+      }, 3000);
+    }
+
+    // LOGOUT FUNCTION
+    window.logout = function() {
+      document.getElementById('loginContainer').style.display = 'block';
+      document.getElementById('appContainer').style.display = 'none';
+      document.getElementById('loginForm').reset();
+      document.getElementById('loginMessage').style.display = 'none';
+      currentUser = null;
+    };
+
+    // STUBS TO PREVENT CONSOLE ERRORS
+    window.markAllPresent = () => showMessage('✅ All students marked present for this session!', 'success');
+    window.saveAttendance = () => showMessage('💾 Attendance saved successfully!', 'success');
+    window.registerStudent = () => {
+      showMessage('➕ Student registered successfully!', 'success');
+      // Add to students array
+      const name = document.getElementById('regName').value || 'New Student';
+      students.push({
+        id: students.length + 1,
+        name: name,
+        class: document.getElementById('regClass').value || '1aad',
+        status: 'active'
+      });
+      loadStudentStatistics();
+    };
+    window.processFee = () => showMessage('✅ Fee payment processed!', 'success');
+  </script>
+</body>
+</html>
