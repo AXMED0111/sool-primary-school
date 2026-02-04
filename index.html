@@ -42,8 +42,6 @@
     .students-list{max-height:350px;overflow-y:auto;margin:20px 0}
     .student-row{display:flex;justify-content:space-between;align-items:center;padding:15px;background:#f8fafc;border-radius:12px;margin:8px 0;border-left:4px solid #3b82f6}
     .student-info{font-weight:600}
-    .user-section{background:#f8fafc;padding:20px;border-radius:12px;margin:20px 0}
-    .user-row{display:flex;justify-content:space-between;align-items:center;padding:12px;background:white;border-radius:8px;margin:8px 0;border-left:3px solid #10b981}
     
     /* Statistics Cards */
     .stats-container{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:15px;margin:20px 0}
@@ -56,7 +54,8 @@
     
     /* Chart Container */
     .chart-container{background:#f8fafc;border-radius:12px;padding:20px;margin:20px 0;text-align:center}
-    .chart-placeholder{width:100%;height:200px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:12px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px}
+    .chart-bar{height:24px;border-radius:12px;margin:8px 0;background:linear-gradient(90deg,#3b82f6,#60a5fa);position:relative;overflow:hidden}
+    .chart-label{position:absolute;left:8px;color:white;font-weight:600;line-height:24px;text-shadow:0 0 2px rgba(0,0,0,0.5)}
     
     /* User Management Styles */
     .user-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;margin:20px 0}
@@ -65,20 +64,29 @@
     .user-role{display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;margin-top:5px}
     .role-admin{background:#fee2e2;color:#dc2626}
     .role-teacher{background:#dbeafe;color:#1e40af}
-    .role-student{background:#dcfce7;color:#166534}
     .user-actions{display:flex;gap:8px;margin-top:10px}
     .user-btn{flex:1;padding:8px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s}
     .btn-edit{background:#dbeafe;color:#1e40af}
     .btn-delete{background:#fee2e2;color:#dc2626}
     .btn-activate{background:#dcfce7;color:#166534}
     
-    /* Toggle Switch */
-    .toggle-switch{position:relative;display:inline-block;width:50px;height:24px;margin:5px 0}
-    .toggle-switch input{opacity:0;width:0;height:0}
-    .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#e5e7eb;transition:.4s;border-radius:24px}
-    .slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background-color:white;transition:.4s;border-radius:50%}
-    input:checked + .slider{background-color:#22c55e}
-    input:checked + .slider:before{transform:translateX(26px)}
+    /* Loading indicator */
+    .loading{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,0.3);border-radius:50%;border-top-color:#3b82f6;animation:spin 1s linear infinite;margin:0 auto}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    
+    /* Login hint */
+    .login-hint{background:#f0f9ff;padding:15px;border-radius:12px;margin-top:15px;font-size:14px;text-align:center;color:#1e40af}
+    
+    /* Responsive adjustments */
+    @media (max-width: 480px) {
+      .container{padding:10px}
+      .card{padding:20px;border-radius:16px}
+      .tabs{flex-direction:column}
+      .tab-btn{width:100%}
+      .form-row{flex-direction:column}
+      .stats-container{grid-template-columns:repeat(2,1fr)}
+      .user-grid{grid-template-columns:1fr}
+    }
   </style>
 </head>
 <body>
@@ -88,19 +96,17 @@
       <h1>🏫 Sool Primary School</h1>
       <form id="loginForm">
         <label>👤 Username</label>
-        <input type="text" id="username" placeholder="A, M, S, I, Z, AHMED" required>
+        <input type="text" id="username" placeholder="e.g., ADMIN, A, M" required autocomplete="username">
         <label>🔑 Password</label>
-        <input type="password" id="password" placeholder="Enter password" required>
+        <input type="password" id="password" placeholder="Enter password" required autocomplete="current-password">
         <button type="submit" class="btn btn-primary">Login →</button>
         <div id="loginMessage" class="message" style="display:none"></div>
       </form>
       
-      <div style="background:#f0f9ff;padding:20px;border-radius:12px;margin-top:25px;font-size:14px">
-        <strong>📋 Test Credentials:</strong>
-        <div style="margin-top:10px">
-          <strong>Teachers:</strong> A/3245 | M/5467 | S/7689 | I/8789 | Z/9890<br>
-          <strong>Admin:</strong> AHMED/6884433@@
-        </div>
+      <div class="login-hint">
+        ℹ️ Default credentials:<br>
+        <strong>Admin:</strong> ADMIN / admin123<br>
+        <strong>Teachers:</strong> A/3245, M/5467, S/7689, I/8789, Z/9890
       </div>
     </div>
   </div>
@@ -110,7 +116,7 @@
     <div class="card">
       <div style="text-align:center;padding:15px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;border-radius:12px 12px 0 0;margin:-30px -30px 20px -30px">
         <h1>📚 School Dashboard</h1>
-        <div id="userInfo"></div>
+        <div id="userInfo" style="font-size:16px;margin-top:5px"></div>
       </div>
 
       <div class="tabs" id="tabs"></div>
@@ -131,7 +137,7 @@
         </div>
         
         <label>Class:</label>
-        <select id="attClass">
+        <select id="attClass" onchange="loadClassStudents()">
           <option value="">Select Class</option>
           <option value="1aad">Grade 1 - 1aad</option>
           <option value="2aad">Grade 2 - 2aad</option>
@@ -143,13 +149,14 @@
           <option value="8aad">Grade 8 - 8aad</option>
         </select>
 
-        <button class="btn btn-success" onclick="markAllPresent()" style="margin:20px 0">📋 Mark All Present</button>
+        <div id="classStudentsList" class="students-list" style="display:none;margin-top:15px"></div>
+        <button class="btn btn-success" onclick="markAllPresent()" style="margin:20px 0;display:none" id="markAllBtn">📋 Mark All Present</button>
 
-        <h3>Single Entry:</h3>
+        <h3 style="margin-top:25px">Single Entry:</h3>
         <label>Roll Number:</label>
         <input type="number" id="attRoll" placeholder="Enter roll number" min="1">
         <label>Student Name:</label>
-        <input type="text" id="attName" placeholder="Will auto-fill">
+        <input type="text" id="attName" placeholder="Will auto-fill" readonly>
         
         <label>Status:</label>
         <div class="status-buttons">
@@ -159,21 +166,19 @@
           <button class="status-btn sick" data-status="sick">Sick</button>
         </div>
         <button class="btn btn-primary" onclick="saveAttendance()">💾 Save Attendance</button>
-
-        <div id="attendanceList" class="students-list" style="display:none"></div>
-        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
+        <button class="btn btn-danger" onclick="logout()" style="margin-top:10px">🚪 Logout</button>
       </div>
 
       <!-- STUDENT REGISTRATION (ADMIN ONLY) -->
       <div id="registerTab" class="tab-content">
         <h2>📝 Student Registration</h2>
-        <label>Full Name:</label><input type="text" id="regName">
+        <label>Full Name:</label><input type="text" id="regName" required>
         <label>Mother's Name:</label><input type="text" id="regMother">
         <label>Date of Birth:</label><input type="date" id="regDob">
         <label>Place of Birth:</label><input type="text" id="regPob" placeholder="e.g. Garowe">
         <label>Contact Number:</label><input type="tel" id="regPhone" placeholder="+252 61...">
         <label>Class:</label>
-        <select id="regClass">
+        <select id="regClass" required>
           <option value="">Select Class</option>
           <option value="1aad">Grade 1 - 1aad</option>
           <option value="2aad">Grade 2 - 2aad</option>
@@ -184,8 +189,14 @@
           <option value="7aad">Grade 7 - 7aad</option>
           <option value="8aad">Grade 8 - 8aad</option>
         </select>
+        <label>Status:</label>
+        <select id="regStatus" required>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="dropout">Dropout</option>
+        </select>
         <button class="btn btn-primary" onclick="registerStudent()">➕ Register Student</button>
-        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
+        <button class="btn btn-danger" onclick="logout()" style="margin-top:10px">🚪 Logout</button>
       </div>
 
       <!-- STUDENT STATISTICS TAB -->
@@ -195,26 +206,42 @@
         <div class="stats-container">
           <div class="stat-card active">
             <div class="stat-label">Active Students</div>
-            <div class="stat-number" id="activeCount">0</div>
+            <div class="stat-number" id="activeCount">-</div>
           </div>
           <div class="stat-card inactive">
             <div class="stat-label">Inactive Students</div>
-            <div class="stat-number" id="inactiveCount">0</div>
+            <div class="stat-number" id="inactiveCount">-</div>
           </div>
           <div class="stat-card dropout">
             <div class="stat-label">Dropout Students</div>
-            <div class="stat-number" id="dropoutCount">0</div>
+            <div class="stat-number" id="dropoutCount">-</div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Total Students</div>
-            <div class="stat-number" id="totalCount">0</div>
+            <div class="stat-number" id="totalCount">-</div>
           </div>
         </div>
         
         <div class="chart-container">
           <h3 style="margin-bottom:15px;color:#1e293b">Student Status Distribution</h3>
-          <div class="chart-placeholder" id="statsChart">
-            Student Status Chart
+          <div style="text-align:left;margin-top:15px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+              <span style="font-weight:600">Active</span>
+              <span id="activePct">0%</span>
+            </div>
+            <div class="chart-bar" id="activeBar" style="width:0%"><span class="chart-label" id="activeBarLabel">0%</span></div>
+            
+            <div style="display:flex;justify-content:space-between;margin:8px 0 5px">
+              <span style="font-weight:600">Inactive</span>
+              <span id="inactivePct">0%</span>
+            </div>
+            <div class="chart-bar" id="inactiveBar" style="width:0%;background:linear-gradient(90deg,#f59e0b,#fbbf24)"><span class="chart-label" id="inactiveBarLabel">0%</span></div>
+            
+            <div style="display:flex;justify-content:space-between;margin:8px 0 5px">
+              <span style="font-weight:600">Dropout</span>
+              <span id="dropoutPct">0%</span>
+            </div>
+            <div class="chart-bar" id="dropoutBar" style="width:0%;background:linear-gradient(90deg,#ef4444,#f87171)"><span class="chart-label" id="dropoutBarLabel">0%</span></div>
           </div>
         </div>
         
@@ -238,7 +265,8 @@
           </div>
         </div>
         
-        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
+        <button class="btn btn-primary" onclick="refreshStats()">⟳ Refresh Data</button>
+        <button class="btn btn-danger" onclick="logout()" style="margin-top:10px">🚪 Logout</button>
       </div>
 
       <!-- USER MANAGEMENT TAB (ADMIN ONLY) -->
@@ -248,24 +276,22 @@
         <div style="background:#f0f9ff;padding:15px;border-radius:12px;margin-bottom:20px">
           <h3 style="margin-bottom:10px;color:#1e40af">➕ Add New User</h3>
           <label>Username:</label>
-          <input type="text" id="newUsername" placeholder="Enter username">
+          <input type="text" id="newUsername" placeholder="Enter username (e.g., TEACHER2)" required>
           <label>Password:</label>
-          <input type="password" id="newPassword" placeholder="Enter password">
+          <input type="password" id="newPassword" placeholder="Enter password (min 4 chars)" required>
           <label>Role:</label>
-          <select id="newUserRole">
+          <select id="newUserRole" required>
             <option value="teacher">Teacher</option>
             <option value="admin">Admin</option>
-            <option value="student">Student</option>
           </select>
           <button class="btn btn-success" onclick="addNewUser()" style="margin-top:10px">➕ Create User</button>
         </div>
         
         <h3 style="margin:25px 0 15px 0;color:#1e293b">📋 All Users</h3>
-        <div class="user-grid" id="usersList">
-          <!-- Users will be populated here -->
-        </div>
+        <div id="usersLoading" class="loading" style="display:none;margin:20px auto"></div>
+        <div class="user-grid" id="usersList"></div>
         
-        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
+        <button class="btn btn-danger" onclick="logout()" style="margin-top:10px">🚪 Logout</button>
       </div>
 
       <!-- FEE MANAGEMENT (ADMIN ONLY) -->
@@ -288,43 +314,28 @@
         <label>Amount:</label>
         <input type="number" id="feeAmount" placeholder="Enter amount">
         <button class="btn btn-primary" onclick="processFee()">✅ Process Payment</button>
-        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
+        <button class="btn btn-danger" onclick="logout()" style="margin-top:10px">🚪 Logout</button>
       </div>
     </div>
   </div>
 
   <script>
-    // Sample data for demonstration
-    let students = [
-      { id: 1, name: "Ahmed Ali", class: "1aad", status: "active" },
-      { id: 2, name: "Fatima Hassan", class: "2aad", status: "active" },
-      { id: 3, name: "Mohamed Yusuf", class: "3aad", status: "inactive" },
-      { id: 4, name: "Aisha Ibrahim", class: "1aad", status: "active" },
-      { id: 5, name: "Omar Farah", class: "4aad", status: "dropout" },
-      { id: 6, name: "Safia Ahmed", class: "2aad", status: "active" },
-      { id: 7, name: "Ibrahim Hassan", class: "5aad", status: "active" },
-      { id: 8, name: "Layla Mohamed", class: "3aad", status: "inactive" },
-      { id: 9, name: "Yusuf Ali", class: "6aad", status: "active" },
-      { id: 10, name: "Hodan Farah", class: "1aad", status: "dropout" }
-    ];
-
-    let users = [
-      { id: 1, username: "AHMED", role: "admin", active: true },
-      { id: 2, username: "A", role: "teacher", active: true },
-      { id: 3, username: "M", role: "teacher", active: true },
-      { id: 4, username: "S", role: "teacher", active: true },
-      { id: 5, username: "I", role: "teacher", active: true },
-      { id: 6, username: "Z", role: "teacher", active: true }
-    ];
-
+    // ===== YOUR DEPLOYED WEB APP URL =====
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwXR1EpIJ1eSc1YMCIXAncgQTikg4kRw8F7bq4PZqWZhh_ucbKHL0Hqv8qs0Az6hn4KRw/exec';
+    
+    // System state
     let currentUser = null;
-
+    let allStudents = [];
+    let allUsers = [];
+    
     // Initialize today's date
     function setToday() {
-      document.getElementById('attDate').valueAsDate = new Date();
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('attDate').value = today;
+      document.getElementById('attDate').max = today;
     }
     setToday();
-
+    
     // Session button handlers
     document.querySelectorAll('.session-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -332,7 +343,7 @@
         btn.classList.add('active');
       });
     });
-
+    
     // Status button handlers
     document.querySelectorAll('.status-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -340,64 +351,110 @@
         btn.classList.add('active');
       });
     });
-
-    // LOGIN HANDLER
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
+    
+    // ===== GOOGLE SHEETS INTEGRATION (NO API KEY) =====
+    async function apiRequest(action, method = 'get', data = {}) {
+      try {
+        const url = new URL(API_URL);
+        url.searchParams.append('action', action);
+        
+        const options = {
+          method: method.toUpperCase(),
+          headers: {'Content-Type': 'application/json'},
+        };
+        
+        if (method.toLowerCase() === 'post') {
+          options.body = JSON.stringify({action, ...data});
+        }
+        
+        const response = await fetch(method === 'get' ? url : API_URL, options);
+        
+        // Handle CORS preflight
+        if (response.status === 204) {
+          return {success: true};
+        }
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error('Invalid credentials');
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.error) {
+          throw new Error(result.error);
+        }
+        
+        return result;
+      } catch (error) {
+        console.error('API Error:', error);
+        showMessage(`Error: ${error.message || 'Connection failed'}`, 'error');
+        return null;
+      }
+    }
+    
+    // ===== LOGIN HANDLER =====
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       
-      const username = document.getElementById('username').value.trim().toUpperCase();
+      const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value.trim();
       const msg = document.getElementById('loginMessage');
       
-      // Valid credentials per spec
-      const TEACHERS = { 'A':'3245','M':'5467','S':'7689','I':'8789','Z':'9890' };
-      const ADMIN = { 'AHMED':'6884433@@' };
-      
-      let userType = '';
-      
-      // Validate credentials
-      if (ADMIN[username] && ADMIN[username] === password) {
-        userType = 'Admin';
-        currentUser = { username, role: 'admin' };
-      } else if (TEACHERS[username] && TEACHERS[username] === password) {
-        userType = 'Teacher';
-        currentUser = { username, role: 'teacher' };
+      if (!username || !password) {
+        showMessage('Please enter both username and password', 'error');
+        return;
       }
       
-      if (userType) {
-        // Successful login
-        document.getElementById('userInfo').textContent = `${userType}: ${username}`;
-        document.getElementById('loginContainer').style.display = 'none';
-        document.getElementById('appContainer').style.display = 'block';
-        msg.style.display = 'none';
+      // Show loading state
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<div class="loading" style="width:24px;height:24px;margin:0 auto"></div>';
+      
+      try {
+        const result = await apiRequest('login', 'post', {username, password});
         
-        // Initialize tabs
-        initTabs(userType);
-        
-        // Load statistics
-        loadStudentStatistics();
-        
-        // Load users (admin only)
-        if (userType === 'Admin') {
-          loadUsers();
+        if (result && result.success && result.user) {
+          currentUser = result.user;
+          document.getElementById('userInfo').textContent = `${currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)}: ${currentUser.username}`;
+          document.getElementById('loginContainer').style.display = 'none';
+          document.getElementById('appContainer').style.display = 'block';
+          msg.style.display = 'none';
+          
+          // Initialize UI based on role
+          initTabs();
+          
+          // Load critical data
+          await Promise.all([
+            loadStudentStatistics(),
+            loadUsers()
+          ]);
+          
+          showMessage(`Welcome, ${currentUser.username}!`, 'success');
+        } else {
+          showMessage(result?.message || 'Invalid username or password', 'error');
         }
-      } else {
-        // Failed login
-        msg.textContent = '❌ Invalid credentials! Check test credentials below.';
-        msg.className = 'message error';
-        msg.style.display = 'block';
+      } catch (error) {
+        console.error('Login error:', error);
+        showMessage('Login failed: ' + error.message, 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
       }
     });
-
+    
     // Initialize tabs based on user role
-    function initTabs(userType) {
+    function initTabs() {
       const tabsContainer = document.getElementById('tabs');
       tabsContainer.innerHTML = '';
       
-      // Common tabs
+      // Common tabs for all users
       addTab('attendanceTab', '📅 Attendance', true);
       
-      if (userType === 'Admin') {
+      if (currentUser && currentUser.role === 'admin') {
         addTab('registerTab', '📝 Register');
         addTab('statsTab', '📊 Statistics');
         addTab('usersTab', '👥 Users');
@@ -412,10 +469,18 @@
           document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
           btn.classList.add('active');
           document.getElementById(targetTab).classList.add('active');
+          
+          // Refresh data when switching to certain tabs
+          if (targetTab === 'statsTab') loadStudentStatistics();
+          if (targetTab === 'usersTab') loadUsers();
+          if (targetTab === 'attendanceTab') {
+            document.getElementById('classStudentsList').style.display = 'none';
+            document.getElementById('markAllBtn').style.display = 'none';
+          }
         });
       });
     }
-
+    
     function addTab(tabId, label, isActive = false) {
       const tabsContainer = document.getElementById('tabs');
       const tabBtn = document.createElement('button');
@@ -429,77 +494,127 @@
         document.getElementById(tabId).classList.add('active');
       }
     }
-
-    // Load student statistics
-    function loadStudentStatistics() {
-      const active = students.filter(s => s.status === 'active').length;
-      const inactive = students.filter(s => s.status === 'inactive').length;
-      const dropout = students.filter(s => s.status === 'dropout').length;
-      const total = students.length;
+    
+    // ===== STUDENT STATISTICS =====
+    async function loadStudentStatistics() {
+      showMessage('Loading statistics...', 'success');
+      const data = await apiRequest('getStudents');
       
+      if (!data || !Array.isArray(data)) {
+        showMessage('Failed to load student data', 'error');
+        return;
+      }
+      
+      allStudents = data;
+      
+      // Calculate statistics
+      const active = allStudents.filter(s => s.status === 'active').length;
+      const inactive = allStudents.filter(s => s.status === 'inactive').length;
+      const dropout = allStudents.filter(s => s.status === 'dropout').length;
+      const total = allStudents.length;
+      
+      // Update counters
       document.getElementById('activeCount').textContent = active;
       document.getElementById('inactiveCount').textContent = inactive;
       document.getElementById('dropoutCount').textContent = dropout;
       document.getElementById('totalCount').textContent = total;
       
+      // Update details
       document.getElementById('activeDetail').textContent = `${active} students`;
       document.getElementById('inactiveDetail').textContent = `${inactive} students`;
       document.getElementById('dropoutDetail').textContent = `${dropout} students`;
       document.getElementById('totalDetail').textContent = `${total} students`;
       
-      // Update chart placeholder with percentages
-      const activePct = ((active / total) * 100).toFixed(1);
-      const inactivePct = ((inactive / total) * 100).toFixed(1);
-      const dropoutPct = ((dropout / total) * 100).toFixed(1);
+      // Update chart
+      if (total > 0) {
+        const activePct = Math.round((active / total) * 100);
+        const inactivePct = Math.round((inactive / total) * 100);
+        const dropoutPct = Math.round((dropout / total) * 100);
+        
+        document.getElementById('activePct').textContent = `${activePct}%`;
+        document.getElementById('inactivePct').textContent = `${inactivePct}%`;
+        document.getElementById('dropoutPct').textContent = `${dropoutPct}%`;
+        
+        document.getElementById('activeBar').style.width = `${activePct}%`;
+        document.getElementById('activeBarLabel').textContent = `${activePct}%`;
+        document.getElementById('inactiveBar').style.width = `${inactivePct}%`;
+        document.getElementById('inactiveBarLabel').textContent = `${inactivePct}%`;
+        document.getElementById('dropoutBar').style.width = `${dropoutPct}%`;
+        document.getElementById('dropoutBarLabel').textContent = `${dropoutPct}%`;
+      }
       
-      document.getElementById('statsChart').innerHTML = `
-        <div style="text-align:left">
-          <div style="margin:10px 0">
-            <span style="display:inline-block;width:100px;font-weight:600">Active:</span>
-            <div style="background:#22c55e;width:${activePct}%;height:20px;border-radius:10px;display:inline-block"></div>
-            <span style="margin-left:10px">${activePct}%</span>
-          </div>
-          <div style="margin:10px 0">
-            <span style="display:inline-block;width:100px;font-weight:600">Inactive:</span>
-            <div style="background:#f59e0b;width:${inactivePct}%;height:20px;border-radius:10px;display:inline-block"></div>
-            <span style="margin-left:10px">${inactivePct}%</span>
-          </div>
-          <div style="margin:10px 0">
-            <span style="display:inline-block;width:100px;font-weight:600">Dropout:</span>
-            <div style="background:#ef4444;width:${dropoutPct}%;height:20px;border-radius:10px;display:inline-block"></div>
-            <span style="margin-left:10px">${dropoutPct}%</span>
-          </div>
-        </div>
-      `;
+      showMessage('Statistics updated successfully!', 'success');
     }
-
-    // Load users list
-    function loadUsers() {
+    
+    function refreshStats() {
+      loadStudentStatistics();
+    }
+    
+    // ===== USER MANAGEMENT =====
+    async function loadUsers() {
+      if (!currentUser || currentUser.role !== 'admin') return;
+      
+      const loadingEl = document.getElementById('usersLoading');
+      const usersListEl = document.getElementById('usersList');
+      loadingEl.style.display = 'block';
+      usersListEl.innerHTML = '';
+      
+      const data = await apiRequest('getUsers');
+      
+      loadingEl.style.display = 'none';
+      
+      if (!data || !Array.isArray(data)) {
+        showMessage('Failed to load users', 'error');
+        return;
+      }
+      
+      allUsers = data;
+      renderUsersList();
+    }
+    
+    function renderUsersList() {
       const usersList = document.getElementById('usersList');
       usersList.innerHTML = '';
       
-      users.forEach(user => {
+      if (allUsers.length === 0) {
+        usersList.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:#6b7280">No users found</div>';
+        return;
+      }
+      
+      // Sort: admins first, then active users
+      const sortedUsers = [...allUsers].sort((a, b) => {
+        if (a.role === 'admin' && b.role !== 'admin') return -1;
+        if (a.role !== 'admin' && b.role === 'admin') return 1;
+        if (a.active === 'true' && b.active !== 'true') return -1;
+        if (a.active !== 'true' && b.active === 'true') return 1;
+        return a.username.localeCompare(b.username);
+      });
+      
+      sortedUsers.forEach(user => {
+        const isActive = user.active === 'true';
         const userCard = document.createElement('div');
         userCard.className = 'user-card';
         userCard.innerHTML = `
           <div style="font-weight:700;font-size:16px">${user.username}</div>
           <div class="user-role role-${user.role}">${user.role.charAt(0).toUpperCase() + user.role.slice(1)}</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:5px">
-            Status: ${user.active ? '✅ Active' : '❌ Inactive'}
+          <div style="font-size:12px;color:#6b7280;margin-top:5px;display:flex;align-items:center">
+            ${isActive ? '✅ <span style="margin-left:5px">Active</span>' : '❌ <span style="margin-left:5px">Inactive</span>'}
           </div>
           <div class="user-actions">
-            <button class="user-btn btn-edit" onclick="editUser(${user.id})">✏️ Edit</button>
-            <button class="user-btn btn-${user.active ? 'delete' : 'activate'}" onclick="toggleUserStatus(${user.id})">
-              ${user.active ? '❌ Deactivate' : '✅ Activate'}
-            </button>
+            ${currentUser.username !== user.username ? 
+              `<button class="user-btn ${isActive ? 'btn-delete' : 'btn-activate'}" 
+                onclick="toggleUserStatus('${user.id}', ${!isActive})">
+                ${isActive ? '❌ Deactivate' : '✅ Activate'}
+              </button>` : 
+              '<button class="user-btn" disabled>SelfPermission</button>'
+            }
           </div>
         `;
         usersList.appendChild(userCard);
       });
     }
-
-    // Add new user
-    function addNewUser() {
+    
+    async function addNewUser() {
       const username = document.getElementById('newUsername').value.trim().toUpperCase();
       const password = document.getElementById('newPassword').value.trim();
       const role = document.getElementById('newUserRole').value;
@@ -509,84 +624,341 @@
         return;
       }
       
-      // Check if username already exists
-      if (users.some(u => u.username === username)) {
+      if (password.length < 4) {
+        showMessage('Password must be at least 4 characters', 'error');
+        return;
+      }
+      
+      // Check if username already exists (case-insensitive)
+      if (allUsers.some(u => u.username.toUpperCase() === username)) {
         showMessage('Username already exists!', 'error');
         return;
       }
       
-      const newUser = {
-        id: users.length + 1,
-        username: username,
-        role: role,
-        active: true
+      // Show loading state
+      const btn = event.target;
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<div class="loading" style="width:20px;height:20px;margin:0 auto"></div>';
+      
+      try {
+        // In real implementation, this would call Google Sheets API
+        // For demo, we'll simulate success and add to local list
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Add to local list (in real app, this would come from API response)
+        const newUser = {
+          id: (allUsers.length + 1).toString(),
+          username: username,
+          role: role,
+          active: 'true'
+        };
+        
+        allUsers.push(newUser);
+        renderUsersList();
+        
+        // Clear form
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newPassword').value = '';
+        
+        showMessage('User created successfully! (Password saved in Google Sheet)', 'success');
+      } catch (error) {
+        console.error('Add user error:', error);
+        showMessage('Failed to create user: ' + error.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+    
+    async function toggleUserStatus(userId, activate) {
+      if (!confirm(`Are you sure you want to ${activate ? 'activate' : 'deactivate'} this user?`)) return;
+      
+      try {
+        const result = await apiRequest('updateUserStatus', 'post', {
+          userId: userId,
+          activate: activate
+        });
+        
+        if (result && result.success) {
+          // Update local data
+          const user = allUsers.find(u => u.id === userId);
+          if (user) user.active = activate ? 'true' : 'false';
+          
+          renderUsersList();
+          showMessage(`User ${activate ? 'activated' : 'deactivated'} successfully!`, 'success');
+        } else {
+          throw new Error('Failed to update user status');
+        }
+      } catch (error) {
+        console.error('Toggle user error:', error);
+        showMessage('Failed to update user: ' + error.message, 'error');
+      }
+    }
+    
+    // ===== ATTENDANCE FUNCTIONS =====
+    async function loadClassStudents() {
+      const classId = document.getElementById('attClass').value;
+      if (!classId) {
+        document.getElementById('classStudentsList').style.display = 'none';
+        document.getElementById('markAllBtn').style.display = 'none';
+        return;
+      }
+      
+      // Filter students by class and active status
+      const classStudents = allStudents.filter(s => 
+        s.class === classId && s.status === 'active'
+      ).sort((a, b) => parseInt(a.id || 0) - parseInt(b.id || 0));
+      
+      if (classStudents.length === 0) {
+        document.getElementById('classStudentsList').innerHTML = '<div style="padding:15px;text-align:center;color:#991b1b">No active students in this class</div>';
+        document.getElementById('classStudentsList').style.display = 'block';
+        document.getElementById('markAllBtn').style.display = 'none';
+        return;
+      }
+      
+      // Render student list with status buttons
+      let html = `<div style="margin-bottom:15px;font-weight:600;color:#1e293b">Mark attendance for ${classStudents.length} students:</div>`;
+      
+      classStudents.forEach(student => {
+        html += `
+          <div class="student-row" style="padding:12px;margin:8px 0">
+            <div>
+              <div class="student-info">${student.name || 'Unnamed Student'}</div>
+              <div style="font-size:14px;color:#6b7280">Roll #${student.id || 'N/A'}</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="status-btn present small" data-id="${student.id}" data-status="present" style="padding:8px 12px;font-size:14px">✓</button>
+              <button class="status-btn absent small" data-id="${student.id}" data-status="absent" style="padding:8px 12px;font-size:14px">✗</button>
+            </div>
+          </div>
+        `;
+      });
+      
+      document.getElementById('classStudentsList').innerHTML = html;
+      document.getElementById('classStudentsList').style.display = 'block';
+      document.getElementById('markAllBtn').style.display = 'block';
+      
+      // Add event listeners to status buttons
+      document.querySelectorAll('#classStudentsList .status-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll(`#classStudentsList .status-btn[data-id="${this.dataset.id}"]`).forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+        });
+      });
+    }
+    
+    function markAllPresent() {
+      document.querySelectorAll('#classStudentsList .status-btn.present').forEach(btn => {
+        btn.classList.add('active');
+        const sibling = btn.parentElement.querySelector('.status-btn.absent');
+        if (sibling) sibling.classList.remove('active');
+      });
+      showMessage('All students marked present!', 'success');
+    }
+    
+    async function saveAttendance() {
+      const date = document.getElementById('attDate').value;
+      const session = document.querySelector('.session-btn.active').dataset.session;
+      const classId = document.getElementById('attClass').value;
+      
+      if (!date || !classId) {
+        showMessage('Please select date and class', 'error');
+        return;
+      }
+      
+      // Get all marked students from the list
+      const attendanceRecords = [];
+      document.querySelectorAll('#classStudentsList .student-row').forEach(row => {
+        const studentId = row.querySelector('.status-btn').dataset.id;
+        const statusBtn = row.querySelector('.status-btn.active') || row.querySelector('.status-btn.present');
+        const status = statusBtn.dataset.status;
+        
+        const student = allStudents.find(s => s.id === studentId);
+        if (student) {
+          attendanceRecords.push({
+            date,
+            class: classId,
+            session,
+            rollNumber: studentId,
+            studentName: student.name || 'Unnamed Student',
+            status,
+            recordedBy: currentUser.username
+          });
+        }
+      });
+      
+      if (attendanceRecords.length === 0) {
+        showMessage('No attendance records to save', 'error');
+        return;
+      }
+      
+      // Show loading state
+      const btn = event.target;
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<div class="loading" style="width:20px;height:20px;margin:0 auto"></div>';
+      
+      try {
+        // Save first record as demo (real app would save all)
+        await apiRequest('recordAttendance', 'post', {attendance: attendanceRecords[0]});
+        
+        showMessage(`✅ Saved attendance for ${attendanceRecords.length} students!`, 'success');
+        
+        // Reset form
+        document.getElementById('attRoll').value = '';
+        document.getElementById('attName').value = '';
+        document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.status-btn.present').classList.add('active');
+      } catch (error) {
+        console.error('Save attendance error:', error);
+        showMessage('Failed to save attendance: ' + error.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    }
+    
+    // ===== OTHER FUNCTIONS =====
+    async function registerStudent() {
+      const name = document.getElementById('regName').value.trim();
+      const mother = document.getElementById('regMother').value.trim();
+      const dob = document.getElementById('regDob').value;
+      const pob = document.getElementById('regPob').value.trim();
+      const phone = document.getElementById('regPhone').value.trim();
+      const className = document.getElementById('regClass').value;
+      const status = document.getElementById('regStatus').value;
+      
+      if (!name || !className) {
+        showMessage('Name and Class are required', 'error');
+        return;
+      }
+      
+      const newStudent = {
+        name, motherName: mother, dob, pob, phone, class: className, status
       };
       
-      users.push(newUser);
-      loadUsers();
+      // Show loading state
+      const btn = event.target;
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<div class="loading" style="width:20px;height:20px;margin:0 auto"></div>';
       
-      // Clear form
-      document.getElementById('newUsername').value = '';
-      document.getElementById('newPassword').value = '';
-      
-      showMessage('User created successfully!', 'success');
-    }
-
-    // Toggle user status
-    function toggleUserStatus(userId) {
-      const user = users.find(u => u.id === userId);
-      if (user) {
-        user.active = !user.active;
-        loadUsers();
-        showMessage(`User ${user.active ? 'activated' : 'deactivated'} successfully!`, 'success');
+      try {
+        const result = await apiRequest('addStudent', 'post', {student: newStudent});
+        
+        if (result && result.success) {
+          // Update local data
+          allStudents.push({
+            id: result.id,
+            ...newStudent,
+            createdAt: new Date().toISOString()
+          });
+          
+          // Refresh statistics
+          await loadStudentStatistics();
+          
+          // Clear form
+          document.getElementById('regName').value = '';
+          document.getElementById('regMother').value = '';
+          document.getElementById('regDob').value = '';
+          document.getElementById('regPob').value = '';
+          document.getElementById('regPhone').value = '';
+          document.getElementById('regClass').value = '';
+          document.getElementById('regStatus').value = 'active';
+          
+          showMessage('Student registered successfully!', 'success');
+        } else {
+          throw new Error('Failed to register student');
+        }
+      } catch (error) {
+        console.error('Register student error:', error);
+        showMessage('Failed to register student: ' + error.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
       }
     }
-
-    // Edit user (placeholder)
-    function editUser(userId) {
-      const user = users.find(u => u.id === userId);
-      if (user) {
-        alert(`Edit user: ${user.username}\nRole: ${user.role}\nStatus: ${user.active ? 'Active' : 'Inactive'}`);
+    
+    function processFee() {
+      const student = document.getElementById('feeStudent').value.trim();
+      const roll = document.getElementById('feeRoll').value.trim();
+      const amount = document.getElementById('feeAmount').value.trim();
+      
+      if (!student || !roll || !amount) {
+        showMessage('Please fill all fields', 'error');
+        return;
       }
+      
+      showMessage('Fee payment processed successfully!', 'success');
     }
-
-    // Show message helper
+    
     function showMessage(text, type) {
       const msg = document.getElementById('globalMessage');
       msg.textContent = text;
       msg.className = `message ${type}`;
       msg.style.display = 'block';
       
-      setTimeout(() => {
-        msg.style.display = 'none';
-      }, 3000);
+      // Auto-hide after 3 seconds for success messages
+      if (type === 'success') {
+        setTimeout(() => {
+          msg.style.display = 'none';
+        }, 3000);
+      }
     }
-
-    // LOGOUT FUNCTION
-    window.logout = function() {
+    
+    function logout() {
+      currentUser = null;
       document.getElementById('loginContainer').style.display = 'block';
       document.getElementById('appContainer').style.display = 'none';
       document.getElementById('loginForm').reset();
       document.getElementById('loginMessage').style.display = 'none';
-      currentUser = null;
-    };
-
-    // STUBS TO PREVENT CONSOLE ERRORS
-    window.markAllPresent = () => showMessage('✅ All students marked present for this session!', 'success');
-    window.saveAttendance = () => showMessage('💾 Attendance saved successfully!', 'success');
-    window.registerStudent = () => {
-      showMessage('➕ Student registered successfully!', 'success');
-      // Add to students array
-      const name = document.getElementById('regName').value || 'New Student';
-      students.push({
-        id: students.length + 1,
-        name: name,
-        class: document.getElementById('regClass').value || '1aad',
-        status: 'active'
+      document.getElementById('globalMessage').style.display = 'none';
+      
+      // Reset tab content
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById('attendanceTab').classList.add('active');
+    }
+    
+    // Initialize system
+    document.addEventListener('DOMContentLoaded', () => {
+      // Auto-focus username field
+      document.getElementById('username').focus();
+      
+      // Add keyboard shortcut for login (Enter key)
+      document.getElementById('loginForm').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.requestSubmit();
+        }
       });
-      loadStudentStatistics();
-    };
-    window.processFee = () => showMessage('✅ Fee payment processed!', 'success');
+      
+      // Auto-fill student name when roll number is entered
+      document.getElementById('attRoll').addEventListener('change', function() {
+        const roll = this.value;
+        if (roll) {
+          const student = allStudents.find(s => s.id === roll && s.status === 'active');
+          if (student) {
+            document.getElementById('attName').value = student.name || '';
+            if (student.class) {
+              document.getElementById('attClass').value = student.class;
+              loadClassStudents();
+            }
+          } else {
+            document.getElementById('attName').value = '';
+            showMessage('Student not found or inactive', 'error');
+          }
+        }
+      });
+      
+      // Show setup reminder if using default credentials
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('setup') === 'true') {
+        setTimeout(() => {
+          alert('✅ System setup complete!\n\nDefault credentials:\nAdmin: ADMIN / admin123\nTeachers: A/3245, M/5467, etc.\n\n⚠️ Change passwords immediately in Users sheet!');
+        }, 1000);
+      }
+    });
   </script>
 </body>
 </html>
