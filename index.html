@@ -57,14 +57,10 @@
     .status-sick{background:#ede9fe;color:#5b21b6}
     .role-admin{background:#3b82f6;color:white}
     .role-teacher{background:#10b981;color:white}
-    .fade-in{animation:fadeIn 0.3s ease-in}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-    @media (max-width:480px){body{padding:12px}.card{padding:20px}}
   </style>
 </head>
 <body>
-  <!-- LOGIN SCREEN - INSTANT LOAD -->
-  <div class="container fade-in" id="loginContainer">
+  <div class="container" id="loginContainer">
     <div class="card">
       <div class="header">
         <h1>🏫 Sool Primary</h1>
@@ -73,11 +69,11 @@
       <form id="loginForm">
         <div class="form-group">
           <label>Username</label>
-          <input type="text" id="username" autocomplete="off" required/>
+          <input type="text" id="username" autocomplete="off" placeholder="A, M, S, I, Z, AHMED" required/>
         </div>
         <div class="form-group">
           <label>Password</label>
-          <input type="password" id="password" required/>
+          <input type="password" id="password" placeholder="Try A/3245" required/>
         </div>
         <button type="submit" class="btn-save">🚀 Sign In</button>
         <div id="loginError" class="message error" style="display:none;"></div>
@@ -85,7 +81,6 @@
     </div>
   </div>
 
-  <!-- MAIN APP - LAZY LOADED -->
   <div class="container" id="appContainer">
     <div class="card">
       <div class="header">
@@ -95,7 +90,7 @@
       <div class="tabs" id="mainTabs"></div>
       <div id="globalMessage" class="message" style="display:none;"></div>
 
-      <!-- ATTENDANCE -->
+      <!-- ATTENDANCE TAB -->
       <div id="attendanceTab" class="tab-content">
         <div class="form-group">
           <label>Date</label>
@@ -146,16 +141,10 @@
         <button type="button" class="btn-logout" onclick="logout()">Logout</button>
       </div>
 
-      <!-- REGISTER -->
+      <!-- REGISTER TAB -->
       <div id="registerTab" class="tab-content">
         <h3 style="margin-bottom:20px;font-size:20px;">📝 Register Student</h3>
         <div class="form-group"><label>Name *</label><input type="text" id="regName"/></div>
         <div class="form-group"><label>Mother *</label><input type="text" id="regMother"/></div>
         <div class="form-group"><label>DOB *</label><input type="date" id="regDOB"/></div>
-        <div class="form-group"><label>Place *</label><input type="text" id="regPOB" placeholder="Garowe"/></div>
-        <div class="form-group"><label>Contact *</label><input type="text" id="regContact" placeholder="+252..."/></div>
-        <div class="form-group"><label>Class *</label>
-          <select id="regClass">
-            <option value="">Select</option><option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
-            <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option><option value="5aad">Grade 5</option>
-            <option value="6aad">Grade 6</option><option v
+        <div class
