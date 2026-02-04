@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Sool Primary School Management</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+      min-height: 100vh;
+      padding: 16px;
+      color: #1e293b;
+      line-height: 1.5;
+    }
+    .container { max-width: 520px; margin: 0 auto; }
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .header { text-align: center; margin-bottom: 24px; }
+    .header h1 { 
+      color: #0c4a6e; 
+      font-size: clamp(20px, 5vw, 28px); 
+      font-weight: 700; 
+      margin-bottom: 8px;
+    }
+    .user-tag { font-size: 14px; color: #64748b; }
+
+    /* Tabs */
+    .tabs { 
+      display: flex; 
+      gap: 8px; 
+      margin-bottom: 24px; 
+      flex-wrap: wrap; 
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tab-btn {
+      padding: 12px 16px;
+      background: #f1f5f9;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex: 1;
+      min-width: 100px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .tab-btn.active { background: #3b82f6; color: white; }
+    .tab-btn:active { transform: scale(0.98); }
+
+    /* Form Elements */
+    .form-group { margin-bottom: 20px; }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    input, select {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      font-size: 16px;
+      background: white;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+
+    /* Date Field */
+    .date-field { display: flex; gap: 10px; }
+    .date-field input { flex: 1; }
+    .btn-today {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    .btn-today:active { background: #059669; }
+
+    /* Session & Status Buttons */
+    .session-buttons, .status-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .session-btn, .status-btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 80px;
+    }
+    .session-btn.active, .status-btn.active {
+      transform: scale(0.97);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .session-btn:not(.active) { background: #f1f5f9; color: #475569; }
+    .session-btn.active { background: #3b82f6; color: white; }
+    .status-btn.present { background: #dcfce7; color: #166534; }
+    .status-btn.absent { background: #fee2e2; color: #b91c1c; }
+    .status-btn.late { background: #fef3c7; color: #92400e; }
+    .status-btn.sick { background: #ede9fe; color: #5b21b6; }
+    .status-btn.active { background: #3b82f6; color: white !important; }
+
+    /* Main Buttons */
+    .btn-save {
+      background: #0ea5e9;
+      color: white;
+      border: none;
+      width: 100%;
+      padding: 18px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 15px;
+    }
+    .btn-save:active { background: #0284c7; }
+    .btn-logout {
+      background: #ef4444;
+      color: white;
+      border: none;
+      width: 100%;
+      padding: 18px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-logout:active { background: #dc2626; }
+
+    /* Messages */
+    .message {
+      padding: 14px;
+      border-radius: 12px;
+      text-align: center;
+      margin-top: 16px;
+      font-weight: 600;
+    }
+    .success { background: #dcfce7; color: #166534; }
+    .error { background: #fee2e2; color: #b91c1c; }
+
+    /* Containers */
+    #loginContainer { display: block; }
+    #appContainer { display: none; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    @media (max-width: 480px) {
+      body { padding: 12px; }
+      .card { padding: 20px; }
+      .tabs { padding-bottom: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- LOGIN -->
+  <div class="container" id="loginContainer">
+    <div class="card">
+      <div class="header">
+        <h1>🏫 Sool Primary</h1>
+        <p style="color:#64748b;">Staff Login</p>
+      </div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="username" autocomplete="off" required />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="password" required />
+        </div>
+        <button type="submit" class="btn-save">Sign In</button>
+        <div id="loginError" class="message error" style="display:none;"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div class="container" id="appContainer">
+    <div class="card">
+      <div class="header">
+        <h1>📚 Sool Primary</h1>
+        <div class="user-tag" id="userDisplay"></div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs" id="mainTabs"></div>
+      <div id="globalMessage" class="message" style="display:none;"></div>
+
+      <!-- ATTENDANCE TAB -->
+      <div id="attendanceTab" class="tab-content">
+        <div class="form-group">
+          <label>Date *</label>
+          <div class="date-field">
+            <input type="date" id="attDate" required />
+            <button type="button" class="btn-today" onclick="setToday()">Today</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Session *</label>
+          <div class="session-buttons">
+            <button type="button" class="session-btn active" data-session="morning">Morning</button>
+            <button type="button" class="session-btn" data-session="after_break">After Break</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Class *</label>
+          <select id="attClass" required>
+            <option value="">Select Class</option>
+            <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
+            <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
+            <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
+            <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Roll Number *</label>
+          <input type="number" id="attRoll" min="1" required placeholder="Enter roll number" />
+        </div>
+        <div class="form-group">
+          <label>Student Name</label>
+          <input type="text" id="attName" placeholder="Auto-filled or manual" />
+        </div>
+        <div class="form-group">
+          <label>Status *</label>
+          <div class="status-buttons">
+            <button type="button" class="status-btn present active" data-status="present">Present</button>
+            <button type="button" class="status-btn absent" data-status="absent">Absent</button>
+            <button type="button" class="status-btn late" data-status="late">Late</button>
+            <button type="button" class="status-btn sick" data-status="sick">Sick</button>
+          </div>
+        </div>
+        <button type="button" class="btn-save" onclick="saveAttendance()">Save Attendance</button>
+        <button type="button" class="btn-logout" onclick="logout()">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ✅ YOUR DEPLOYED URL
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGajsZuQXtr0Zd-ClOGtxy8F3pd4maWLEBy6Al3yb46MOe2z6vgZ6YiHzulwaO8J_ysg/exec';
+    
+    let currentUser = '', userRole = '', studentCache = [];
+
+    // ✅ CORRECTED USERS - Username A password 3245 format
+    const VALID_USERS = {
+      'A': { role: 'teacher', password: '3245' },
+      'M': { role: 'teacher', password: '5467' },
+      'S': { role: 'teacher', password: '7689' },
+      'I': { role: 'teacher', password: '8789' },
+      'Z': { role: 'teacher', password: '9890' },
+      'AHMED': { role: 'admin', password: '6884433@@' }
+    };
+
+    function setToday() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('attDate').value = today;
+    }
+
+    function showMessage(text, isError = false) {
+      const msg = document.getElementById('globalMessage') || document.getElementById('loginError');
+      msg.textContent = text;
+      msg.className = `message ${isError ? 'error' : 'success'}`;
+      msg.style.display = 'block';
+      setTimeout(() => msg.style.display = 'none', 3000);
+    }
+
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.getElementById(tabName + 'Tab').classList.add('active');
+      
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event?.target?.classList.add('active');
+    }
+
+    // Event Listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.session-btn, .status-btn').forEach(btn => {
+        btn.onclick = () => {
+          btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        };
+      });
+
+      document.getElementById('attRoll').oninput = function() {
+        const roll = this.value, cls = document.getElementById('attClass').value;
+        if (roll && cls) {
+          const student = studentCache.find(s => String(s.roll_number) === roll && s.class === cls);
+          document.getElementById('attName').value = student?.student_name || '';
+        }
+      };
+
+      document.getElementById('loginForm').onsubmit = login;
+      setToday();
+    });
+
+    async function login(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim().toUpperCase();
+      const password = document.getElementById('password').value.trim();
+
+      const user = VALID_USERS[username];
+      if (user && user.password === password) {
+        currentUser = username;
+        userRole = user.role;
+        
+        document.getElementById('userDisplay').textContent = `Logged in: ${username} (${user.role.toUpperCase()})`;
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'block';
+
+        await loadStudents();
+        setupTabs();
+      } else {
+        showMessage('❌ Invalid credentials', true);
+      }
+    }
+
+    async function loadStudents() {
+      try {
+        const res = await fetch(`${SCRIPT_URL}?action=getStudents`);
+        studentCache = await res.json();
+      } catch(e) {
+        console.error('Load students failed:', e);
+      }
+    }
+
+    function setupTabs() {
+      const tabs = document.getElementById('mainTabs');
+      if (userRole === 'admin') {
+        tabs.innerHTML = `
+          <button class="tab-btn active" onclick="showTab('attendance')">Attendance</button>
+        `;
+      } else {
+        tabs.innerHTML = `<button class="tab-btn active" onclick="showTab('attendance')">Attendance</button>`;
+      }
+      document.getElementById('attendanceTab').classList.add('active');
+    }
+
+    async function saveAttendance() {
+      const formData = new FormData();
+      formData.append('form_type', 'attendance');
+      formData.append('date', document.getElementById('attDate').value);
+      formData.append('class', document.getElementById('attClass').value);
+      formData.append('roll_number', document.getElementById('attRoll').value);
+      formData.append('student_name', document.getElementById('attName').value);
+      formData.append('attendance_status', document.querySelector('.status-btn.active').dataset.status);
+      formData.append('session', document.querySelector('.session-btn.active').dataset.session);
+      formData.append('recorded_by', currentUser);
+
+      try {
+        const res = await fetch(SCRIPT_URL, { method: 'POST', body: formData });
+        if (res.ok) {
+          showMessage('✅ Attendance saved!');
+          document.getElementById('loginForm').reset();
+        } else {
+          showMessage('❌ Save failed', true);
+        }
+      } catch(e) {
+        showMessage('❌ Network error', true);
+      }
+    }
+
+    function logout() {
+      currentUser = userRole = '';
+      document.getElementById('appContainer').style.display = 'none';
+      document.getElementById('loginContainer').style.display = 'block';
+      document.getElementById('loginForm').reset();
+    }
+  </script>
+</body>
+</html>
