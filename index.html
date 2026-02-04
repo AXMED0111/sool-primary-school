@@ -49,7 +49,7 @@
     .stat-card.active{background:linear-gradient(135deg,#dcfce7,#a7f3d0);border-left-color:#22c55e}
     .stat-card.inactive{background:linear-gradient(135deg,#fef3c7,#fde68a);border-left-color:#f59e0b}
     .stat-card.dropout{background:linear-gradient(135deg,#fee2e2,#fecaca);border-left-color:#ef4444}
-    .stat-number{font-size:32px;font-weight:800;margin:10px 0;color:#1e293b}
+   stat-number{font-size:32px;font-weight:800;margin:10px 0;color:#1e293b}
     .stat-label{font-size:14px;color:#6b7280;font-weight:600}
     
     /* Chart Container */
@@ -96,18 +96,12 @@
       <h1>🏫 Sool Primary School</h1>
       <form id="loginForm">
         <label>👤 Username</label>
-        <input type="text" id="username" placeholder="e.g., ADMIN, A, M" required autocomplete="username">
+        <input type="text" id="username" placeholder="Enter your username" required autocomplete="username">
         <label>🔑 Password</label>
         <input type="password" id="password" placeholder="Enter password" required autocomplete="current-password">
         <button type="submit" class="btn btn-primary">Login →</button>
         <div id="loginMessage" class="message" style="display:none"></div>
       </form>
-      
-      <div class="login-hint">
-        ℹ️ Default credentials:<br>
-        <strong>Admin:</strong> ADMIN / admin123<br>
-        <strong>Teachers:</strong> A/3245, M/5467, S/7689, I/8789, Z/9890
-      </div>
     </div>
   </div>
 
@@ -276,9 +270,9 @@
         <div style="background:#f0f9ff;padding:15px;border-radius:12px;margin-bottom:20px">
           <h3 style="margin-bottom:10px;color:#1e40af">➕ Add New User</h3>
           <label>Username:</label>
-          <input type="text" id="newUsername" placeholder="Enter username (e.g., TEACHER2)" required>
+          <input type="text" id="newUsername" placeholder="Enter username" required>
           <label>Password:</label>
-          <input type="password" id="newPassword" placeholder="Enter password (min 4 chars)" required>
+          <input type="password" id="newPassword" placeholder="Enter password" required>
           <label>Role:</label>
           <select id="newUserRole" required>
             <option value="teacher">Teacher</option>
@@ -298,7 +292,7 @@
       <div id="feeTab" class="tab-content">
         <h2>💰 Fee Management</h2>
         <label>Student Name:</label><input type="text" id="feeStudent">
-        <label>Roll Number:</label><input type="text" id="feeRoll">
+        <label>Roll:</label><input type="text" id="feeRoll">
         <label>Class:</label>
         <select id="feeClass">
           <option value="">Select Class</option>
@@ -320,7 +314,7 @@
   </div>
 
   <script>
-    // ===== YOUR DEPLOYED WEB APP URL =====
+    // ===== CORRECTED GOOGLE SHEETS URL (NO API KEY) =====
     const API_URL = 'https://script.google.com/macros/s/AKfycbwXR1EpIJ1eSc1YMCIXAncgQTikg4kRw8F7bq4PZqWZhh_ucbKHL0Hqv8qs0Az6hn4KRw/exec';
     
     // System state
@@ -395,7 +389,7 @@
       }
     }
     
-    // ===== LOGIN HANDLER =====
+    // ===== LOGIN HANDLER (FIXED) =====
     document.getElementById('loginForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       
@@ -435,11 +429,23 @@
           
           showMessage(`Welcome, ${currentUser.username}!`, 'success');
         } else {
-          showMessage(result?.message || 'Invalid username or password', 'error');
+          // Enhanced error handling
+          if (result && result.message) {
+            showMessage(result.message, 'error');
+          } else {
+            showMessage('Invalid username or password. Please try again.', 'error');
+          }
         }
       } catch (error) {
         console.error('Login error:', error);
-        showMessage('Login failed: ' + error.message, 'error');
+        // More specific error messages
+        if (error.message.includes('Invalid credentials')) {
+          showMessage('Invalid username or password. Please try again.', 'error');
+        } else if (error.message.includes('Connection failed')) {
+          showMessage('Connection error. Please check your internet connection.', 'error');
+        } else {
+          showMessage('Login failed: ' + error.message, 'error');
+        }
       } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
@@ -456,7 +462,7 @@
       
       if (currentUser && currentUser.role === 'admin') {
         addTab('registerTab', '📝 Register');
-        addTab('statsTab', '📊 Statistics');
+        addTab('statsTab', ' Statistics');
         addTab('usersTab', '👥 Users');
         addTab('feeTab', '💰 Fees');
       }
@@ -606,7 +612,7 @@
                 onclick="toggleUserStatus('${user.id}', ${!isActive})">
                 ${isActive ? '❌ Deactivate' : '✅ Activate'}
               </button>` : 
-              '<button class="user-btn" disabled>SelfPermission</button>'
+              '<button class="user-btn" disabled>Self</button>'
             }
           </div>
         `;
@@ -619,7 +625,7 @@
       const password = document.getElementById('newPassword').value.trim();
       const role = document.getElementById('newUserRole').value;
       
-      if (!username || !password) {
+ (!username || !password) {
         showMessage('Please fill in all fields', 'error');
         return;
       }
@@ -699,7 +705,7 @@
     // ===== ATTENDANCE FUNCTIONS =====
     async function loadClassStudents() {
       const classId = document.getElementById('attClass').value;
-      if (!classId) {
+      if (!Id) {
         document.getElementById('classStudentsList').style.display = 'none';
         document.getElementById('markAllBtn').style.display = 'none';
         return;
@@ -710,9 +716,9 @@
         s.class === classId && s.status === 'active'
       ).sort((a, b) => parseInt(a.id || 0) - parseInt(b.id || 0));
       
-      if (classStudents.length === 0) {
+      if (classStudents.length ===0) {
         document.getElementById('classStudentsList').innerHTML = '<div style="padding:15px;text-align:center;color:#991b1b">No active students in this class</div>';
-        document.getElementById('classStudentsList').style.display = 'block';
+        document.getElementById('classStudentsList')..display = 'block';
         document.getElementById('markAllBtn').style.display = 'none';
         return;
       }
@@ -865,7 +871,7 @@
           document.getElementById('regPob').value = '';
           document.getElementById('regPhone').value = '';
           document.getElementById('regClass').value = '';
-          document.getElementById('regStatus').value = 'active';
+          document.getElementById('regStatus').value = '';
           
           showMessage('Student registered successfully!', 'success');
         } else {
@@ -950,14 +956,6 @@
           }
         }
       });
-      
-      // Show setup reminder if using default credentials
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('setup') === 'true') {
-        setTimeout(() => {
-          alert('✅ System setup complete!\n\nDefault credentials:\nAdmin: ADMIN / admin123\nTeachers: A/3245, M/5467, etc.\n\n⚠️ Change passwords immediately in Users sheet!');
-        }, 1000);
-      }
     });
   </script>
 </body>
