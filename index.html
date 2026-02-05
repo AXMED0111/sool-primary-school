@@ -9,92 +9,65 @@
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px;color:#333}
     .container{max-width:500px;margin:0 auto}
     .card{background:white;border-radius:20px;padding:30px;box-shadow:0 20px 40px rgba(0,0,0,0.1);margin-bottom:20px}
-    h1{text-align:center;color:#1e293b;font-size:28px;margin-bottom:10px;font-weight:700}
+    h1{text-align:center;color:#1e293b;font-size:26px;margin-bottom:10px;font-weight:700}
     label{display:block;margin:12px 0 6px;font-weight:600;color:#374151}
-    input,select{width:100%;padding:15px;border:2px solid #e5e7eb;border-radius:12px;font-size:16px;background:#f9fafb;transition:all 0.3s}
+    input,select{width:100%;padding:14px;border:2px solid #e5e7eb;border-radius:12px;font-size:16px;background:#f9fafb;transition:all 0.3s}
     input:focus,select:focus{border-color:#3b82f6;outline:none;background:white;box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
     .btn{width:100%;padding:16px;margin:10px 0;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.2s}
     .btn-primary{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white}
     .btn-success{background:linear-gradient(135deg,#10b981,#059669);color:white}
     .btn-danger{background:linear-gradient(135deg,#ef4444,#dc2626);color:white}
-    .btn:active{transform:translateY(1px)}
-    .tabs{display:flex;gap:10px;margin:25px 0;flex-wrap:wrap}
-    .tab-btn{flex:1;padding:14px;border:none;border-radius:12px;background:#f1f5f9;color:#6b7280;font-weight:600;cursor:pointer;transition:all 0.3s;flex-basis:90px}
-    .tab-btn.active{background:#3b82f6;color:white;transform:translateY(-2px)}
+    .tabs{display:flex;gap:8px;margin:25px 0;flex-wrap:wrap}
+    .tab-btn{flex:1;padding:12px;border:none;border-radius:10px;background:#f1f5f9;color:#6b7280;font-weight:600;cursor:pointer;transition:all 0.3s;min-width:90px}
+    .tab-btn.active{background:#3b82f6;color:white}
     .tab-content{display:none}
     .tab-content.active{display:block}
-    .message{padding:15px;border-radius:12px;text-align:center;margin:15px 0;font-weight:600}
-    .success{background:#d1fae5;color:#065f46;border:2px solid #a7f3d0}
-    .error{background:#fee2e2;color:#991b1b;border:2px solid #fca5a5}
-    #loginContainer{display:block}
-    #appContainer{display:none}
-    .form-row{display:flex;gap:12px}
-    .form-row input{flex:1}
-    .status-buttons,.session-buttons{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
-    .status-btn,.session-btn{flex:1;padding:12px;border:2px solid #e5e7eb;border-radius:10px;font-weight:600;cursor:pointer;transition:all 0.2s;min-width:80px}
-    .status-btn.active,.session-btn.active{border-color:#3b82f6;background:#3b82f6;color:white;transform:scale(0.98)}
-    .status-present{background:#dcfce7;border-color:#22c55e;color:#166534}
-    .status-absent{background:#fee2e2;border-color:#ef4444;color:#dc2626}
-    .status-late{background:#fef3c7;border-color:#f59e0b;color:#d97706}
-    .status-sick{background:#e0e7ff;border-color:#6366f1;color:#3730a3}
-    .students-list{max-height:350px;overflow-y:auto;margin:20px 0}
-    .student-row{display:flex;justify-content:space-between;align-items:center;padding:15px;background:#f8fafc;border-radius:12px;margin:8px 0;border-left:4px solid #3b82f6}
-    .loading{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,0.3);border-radius:50%;border-top-color:#3b82f6;animation:spin 1s linear infinite;margin:0 auto}
-    @keyframes spin{to{transform:rotate(360deg)}}
+    .message{padding:14px;border-radius:10px;text-align:center;margin:15px 0;font-size:14px;font-weight:600}
+    .success{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0}
+    .error{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}
+    .students-list{max-height:250px;overflow-y:auto;margin:15px 0;background:#f8fafc;border-radius:10px;padding:12px;border:1px solid #e2e8f0;display:none}
+    .student-item{padding:10px;border-bottom:1px solid #edf2f7;font-size:14px;display:flex;justify-content:space-between;align-items:center}
+    .status-buttons{display:flex;gap:5px;margin:10px 0}
+    .status-btn{flex:1;padding:12px 5px;font-size:13px;border-radius:10px;border:1px solid #e5e7eb;background:#f9fafb;cursor:pointer;font-weight:600;transition:all 0.2s}
+    .status-btn.active{background:#3b82f6;color:white;border-color:#3b82f6;transform:scale(0.95)}
+    .loading-spinner{border:3px solid rgba(255,255,255,0.3);border-top:3px solid #fff;border-radius:50%;width:20px;height:20px;animation:spin 1s linear infinite;display:inline-block;vertical-align:middle}
+    @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
-  <!-- LOGIN -->
+
   <div class="container" id="loginContainer">
     <div class="card">
-      <h1>🏫 Sool Primary School</h1>
+      <h1>🏫 Sool School</h1>
       <form id="loginForm">
-        <label>👤 Username</label>
-        <input type="text" id="username" placeholder="A, M, S, I, Z, AHMED" required>
-        <label>🔑 Password</label>
-        <input type="password" id="password" placeholder="Enter password" required>
+        <label>Username</label>
+        <input type="text" id="username" placeholder="e.g. AHMED" required>
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter Password" required>
         <button type="submit" class="btn btn-primary" id="loginBtn">Login →</button>
-        <div id="loginMessage" class="message" style="display:none"></div>
       </form>
-      
-      <div style="background:#f0f9ff;padding:20px;border-radius:12px;margin-top:25px;font-size:14px">
-        <strong>📋 Test Credentials:</strong>
-        <div style="margin-top:10px">
-          <strong>Teachers:</strong> A/3245 | M/5467 | S/7689 | I/8789 | Z/9890<br>
-          <strong>Admin:</strong> AHMED/6884433@@
-        </div>
-      </div>
+      <div id="loginMessage" class="message" style="display:none"></div>
     </div>
   </div>
 
-  <!-- MAIN APP -->
-  <div class="container" id="appContainer">
+  <div class="container" id="appContainer" style="display:none">
     <div class="card">
-      <div style="text-align:center;padding:15px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;border-radius:12px 12px 0 0;margin:-30px -30px 20px -30px">
-        <h1>📚 School Dashboard</h1>
-        <div id="userInfo"></div>
+      <div style="background:#3b82f6;color:white;margin:-30px -30px 20px -30px;padding:20px;border-radius:20px 20px 0 0;text-align:center">
+        <h2 id="welcomeText" style="margin:0">Dashboard</h2>
+        <div id="userInfo" style="font-size:14px;opacity:0.9"></div>
       </div>
 
-      <div class="tabs" id="tabs"></div>
+      <div class="tabs" id="tabBar"></div>
       <div id="globalMessage" class="message" style="display:none"></div>
 
       <!-- ATTENDANCE TAB -->
       <div id="attendanceTab" class="tab-content active">
-        <label>Date:</label>
-        <div class="form-row">
-          <input type="date" id="attDate">
-          <button type="button" class="btn btn-success" onclick="setToday()" style="width:120px;padding:15px 10px">Today</button>
-        </div>
+        <label>Date</label>
+        <input type="date" id="attDate">
         
-        <label>Session:</label>
-        <div class="session-buttons">
-          <button class="session-btn active" data-session="morning">Morning</button>
-          <button class="session-btn" data-session="afternoon">Afternoon</button>
-        </div>
-        
-        <label>Class:</label>
+        <label>Class Selection</label>
         <select id="attClass" onchange="loadClassStudents()">
-          <option value="">Select Class</option>
+          <option value="">-- Choose a Class --</option>
           <option value="1aad">Grade 1 - 1aad</option>
           <option value="2aad">Grade 2 - 2aad</option>
           <option value="3aad">Grade 3 - 3aad</option>
@@ -105,301 +78,277 @@
           <option value="8aad">Grade 8 - 8aad</option>
         </select>
 
-        <button class="btn btn-success" onclick="markAllPresent()" id="markAllBtn" style="display:none;margin:20px 0">📋 Mark All Present</button>
+        <div id="classStudentsList" class="students-list"></div>
+        <button class="btn btn-success" id="markAllBtn" style="display:none" onclick="markAllPresent()">📋 Mark All Class Present</button>
 
-        <h3 style="margin-top:25px">Single Entry:</h3>
-        <label>Roll Number:</label>
-        <input type="number" id="attRoll" placeholder="Enter roll number" min="1" onchange="findStudent()">
-        <label>Student Name:</label>
-        <input type="text" id="attName" readonly>
+        <hr style="margin:25px 0; border:0; border-top:1px dashed #ccc">
+        <h3 style="margin-bottom:10px">Individual Entry</h3>
         
-        <label>Status:</label>
+        <label>Roll Number</label>
+        <input type="number" id="attRoll" placeholder="Search Roll ID..." oninput="findStudent()">
+        
+        <label>Student Name</label>
+        <input type="text" id="attName" readonly style="background:#f1f5f9; color:#64748b">
+        
+        <label>Status</label>
         <div class="status-buttons">
-          <button class="status-btn present active" data-status="present">Present</button>
-          <button class="status-btn absent" data-status="absent">Absent</button>
-          <button class="status-btn late" data-status="late">Late</button>
-          <button class="status-btn sick" data-status="sick">Sick</button>
+          <button class="status-btn active" data-status="present">Present</button>
+          <button class="status-btn" data-status="absent">Absent</button>
+          <button class="status-btn" data-status="late">Late</button>
+          <button class="status-btn" data-status="sick">Sick</button>
         </div>
-        <button class="btn btn-primary" onclick="saveAttendance()">💾 Save Attendance</button>
-
-        <div id="classStudentsList" class="students-list" style="display:none"></div>
-        <button class="btn btn-danger" onclick="logout()">🚪 Logout</button>
+        
+        <button class="btn btn-primary" onclick="saveAttendance()" id="saveAttBtn">💾 Save Entry</button>
       </div>
 
       <!-- REGISTER TAB (ADMIN) -->
       <div id="registerTab" class="tab-content">
-        <h2>📝 Student Registration</h2>
-        <label>Full Name:</label><input type="text" id="regName">
-        <label>Mother's Name:</label><input type="text" id="regMother">
-        <label>Date of Birth:</label><input type="date" id="regDob">
-        <label>Place of Birth:</label><input type="text" id="regPob" placeholder="e.g. Garowe">
-        <label>Contact Number:</label><input type="tel" id="regPhone" placeholder="+252 61...">
-        <label>Class:</label>
+        <h3>New Student Registration</h3>
+        <label>Full Name</label><input type="text" id="regName">
+        <label>Mother's Name</label><input type="text" id="regMother">
+        <label>Class</label>
         <select id="regClass">
-          <option value="">Select Class</option>
-          <option value="1aad">Grade 1 - 1aad</option>
-          <option value="2aad">Grade 2 - 2aad</option>
-          <option value="3aad">Grade 3 - 3aad</option>
-          <option value="4aad">Grade 4 - 4aad</option>
-          <option value="5aad">Grade 5 - 5aad</option>
-          <option value="6aad">Grade 6 - 6aad</option>
-          <option value="7aad">Grade 7 - 7aad</option>
-          <option value="8aad">Grade 8 - 8aad</option>
+          <option value="1aad">Grade 1</option>
+          <option value="2aad">Grade 2</option>
+          <option value="3aad">Grade 3</option>
+          <option value="4aad">Grade 4</option>
+          <option value="5aad">Grade 5</option>
+          <option value="6aad">Grade 6</option>
+          <option value="7aad">Grade 7</option>
+          <option value="8aad">Grade 8</option>
         </select>
-        <button class="btn btn-primary" onclick="registerStudent()">➕ Register Student</button>
-        <button class="btn btn-danger" onclick="logout()">Logout</button>
+        <label>DOB</label><input type="date" id="regDob">
+        <button class="btn btn-primary" onclick="registerStudent()" id="regBtn">➕ Add to School</button>
       </div>
 
-      <!-- FEE TAB (ADMIN) -->
+      <!-- FEES TAB (ADMIN) -->
       <div id="feeTab" class="tab-content">
-        <h2>💰 Fee Management</h2>
-        <label>Student Name:</label><input type="text" id="feeStudent">
-        <label>Roll Number:</label><input type="text" id="feeRoll">
-        <label>Class:</label>
-        <select id="feeClass">
-          <option value="">Select Class</option>
-          <option value="1aad">Grade 1 - 1aad</option>
-          <option value="2aad">Grade 2 - 2aad</option>
-          <option value="3aad">Grade 3 - 3aad</option>
-          <option value="4aad">Grade 4 - 4aad</option>
-          <option value="5aad">Grade 5 - 5aad</option>
-          <option value="6aad">Grade 6 - 6aad</option>
-          <option value="7aad">Grade 7 - 7aad</option>
-          <option value="8aad">Grade 8 - 8aad</option>
-        </select>
-        <label>Amount:</label><input type="number" id="feeAmount" step="0.01">
-        <button class="btn btn-primary" onclick="processFee()">💳 Record Payment</button>
-        <button class="btn btn-danger" onclick="logout()">Logout</button>
+        <h3>Record Fee Payment</h3>
+        <label>Roll Number</label><input type="number" id="feeRoll" oninput="findFeeStudent()">
+        <label>Student Name</label><input type="text" id="feeName" readonly style="background:#f1f5f9">
+        <label>Amount ($)</label><input type="number" id="feeAmount" placeholder="0.00">
+        <button class="btn btn-success" onclick="processFee()" id="feeBtn">💳 Process Payment</button>
       </div>
+
+      <button class="btn btn-danger" onclick="location.reload()" style="margin-top:20px; opacity:0.8">🚪 Logout</button>
     </div>
   </div>
 
   <script>
-    // ✅ YOUR GOOGLE SCRIPT URL
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxAZShQFFQeUlWUHbDcrjVQJkPC2rGVFetNxHyV_MeTjs8le679xRHJWBKhg_LUMxAQlQ/exec';
+    // ✅ REPLACE WITH YOUR DEPLOYED URL
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzy-W4U68JJ4NFzVXaZjvteFC72qhiUfb4wIYhUokQY__SkXAHwCFuPqQtJxjoPhzqS0A/exec';
     
     let currentUser = null;
     let allStudents = [];
 
-    function showMessage(text, type = 'success') {
-      const msg = document.getElementById('globalMessage') || document.getElementById('loginMessage');
-      msg.textContent = text;
-      msg.className = `message ${type}`;
-      msg.style.display = 'block';
-      if (type === 'success') setTimeout(() => msg.style.display = 'none', 3000);
+    function showMessage(msg, type='success') {
+      const target = currentUser ? document.getElementById('globalMessage') : document.getElementById('loginMessage');
+      target.textContent = msg;
+      target.className = `message ${type}`;
+      target.style.display = 'block';
+      setTimeout(() => target.style.display = 'none', 5000);
     }
 
-    function setToday() {
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('attDate').value = today;
-    }
-
-    // Button handlers
-    document.querySelectorAll('.session-btn, .status-btn').forEach(btn => {
-      btn.onclick = () => {
-        btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      }
-    });
-
-    async function apiRequest(action, data = {}) {
+    async function api(action, data={}) {
       try {
-        const url = new URL(API_URL);
-        url.searchParams.append('action', action);
-        
-        const response = await fetch(url.toString(), {
+        const res = await fetch(API_URL, {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({...data, action})
         });
-        
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const result = await response.json();
-        if (result.error) throw new Error(result.error);
-        return result;
-      } catch (error) {
-        console.error('API Error:', error);
-        showMessage(`❌ ${error.message}`, 'error');
-        return null;
+        const json = await res.json();
+        if(json.error) throw new Error(json.error);
+        return json;
+      } catch (e) {
+        showMessage("Connection failed. Check Internet.", "error");
+        return { error: true };
       }
     }
 
-    // LOGIN
+    // LOGIN LOGIC
     document.getElementById('loginForm').onsubmit = async (e) => {
       e.preventDefault();
-      const username = document.getElementById('username').value.trim().toUpperCase();
-      const password = document.getElementById('password').value;
       const btn = document.getElementById('loginBtn');
-      
-      if (!username || !password) return showMessage('Please enter both fields!', 'error');
-      
       btn.disabled = true;
-      btn.innerHTML = '<div class="loading"></div>';
+      btn.innerHTML = '<div class="loading-spinner"></div> Logging in...';
       
-      try {
-        const result = await apiRequest('login', {username, password});
-        if (result?.success) {
-          currentUser = result.user;
-          document.getElementById('userInfo').textContent = `${currentUser.username} (${currentUser.role.toUpperCase()})`;
-          document.getElementById('loginContainer').style.display = 'none';
-          document.getElementById('appContainer').style.display = 'block';
-          
-          initTabs();
-          setToday();
-          showMessage(`Welcome, ${currentUser.username}!`, 'success');
-        } else {
-          showMessage('❌ Invalid credentials!', 'error');
-        }
-      } catch (error) {
-        showMessage('Login failed - Check internet', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = 'Login →';
+      const res = await api('login', {
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value
+      });
+
+      if (res.success) {
+        currentUser = res.user;
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('appContainer').style.display = 'block';
+        document.getElementById('userInfo').textContent = `Role: ${currentUser.role.toUpperCase()}`;
+        document.getElementById('welcomeText').textContent = `Hi, ${currentUser.username}`;
+        document.getElementById('attDate').valueAsDate = new Date();
+        setupTabs();
+        loadStudents();
+      } else {
+        showMessage(res.message || "Invalid Credentials", "error");
+      }
+      btn.disabled = false;
+      btn.innerHTML = "Login →";
+    };
+
+    function setupTabs() {
+      const bar = document.getElementById('tabBar');
+      bar.innerHTML = '<button class="tab-btn active" onclick="switchTab(\'attendance\')">Attendance</button>';
+      if(currentUser.role === 'admin') {
+        bar.innerHTML += '<button class="tab-btn" onclick="switchTab(\'register\')">Register</button>';
+        bar.innerHTML += '<button class="tab-btn" onclick="switchTab(\'fee\')">Fees</button>';
       }
     }
 
-    function initTabs() {
-      const tabs = document.getElementById('tabs');
-      tabs.innerHTML = '<button class="tab-btn active" onclick="showTab(\'attendance\')">📋 Attendance</button>';
-      
-      if (currentUser.role === 'admin') {
-        tabs.innerHTML += `
-          <button class="tab-btn" onclick="showTab('register')">👥 Register</button>
-          <button class="tab-btn" onclick="showTab('fee')">💰 Fees</button>
-        `;
-      }
-    }
-
-    function showTab(tab) {
-      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    window.switchTab = (tab) => {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(tab + 'Tab').classList.add('active');
       event.target.classList.add('active');
+    };
+
+    async function loadStudents() {
+      const res = await api('getStudents');
+      if (Array.isArray(res)) allStudents = res;
     }
 
-    async function saveAttendance() {
-      const date = document.getElementById('attDate').value;
-      const session = document.querySelector('.session-btn.active').dataset.session;
+    // SEARCH LOGIC
+    window.findStudent = () => {
       const roll = document.getElementById('attRoll').value;
+      const s = allStudents.find(x => String(x.ID) === String(roll));
+      document.getElementById('attName').value = s ? s.Name : "Student not found";
+    };
+
+    window.findFeeStudent = () => {
+      const roll = document.getElementById('feeRoll').value;
+      const s = allStudents.find(x => String(x.ID) === String(roll));
+      document.getElementById('feeName').value = s ? s.Name : "Search ID...";
+    };
+
+    window.loadClassStudents = () => {
+      const cls = document.getElementById('attClass').value;
+      const list = document.getElementById('classStudentsList');
+      const btn = document.getElementById('markAllBtn');
+      if (!cls) { list.style.display = 'none'; btn.style.display = 'none'; return; }
+      
+      const filtered = allStudents.filter(s => s.Class === cls && s.Status === 'active');
+      list.innerHTML = filtered.length > 0 ? 
+        filtered.map(s => `<div class="student-item"><span>#${s.ID}</span> <span>${s.Name}</span></div>`).join('') :
+        '<div style="text-align:center;color:#999">No students in this class</div>';
+      
+      list.style.display = 'block';
+      btn.style.display = filtered.length > 0 ? 'block' : 'none';
+    };
+
+    // STATUS BUTTONS
+    document.querySelectorAll('.status-btn').forEach(b => {
+      b.onclick = () => {
+        b.parentElement.querySelectorAll('.status-btn').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+      };
+    });
+
+    // ACTION FUNCTIONS
+    window.saveAttendance = async () => {
       const name = document.getElementById('attName').value;
-      const status = document.querySelector('.status-btn.active').dataset.status;
-      
-      if (!date || !roll) return showMessage('Date and Roll required!', 'error');
-      
-      const btn = event.target;
-      btn.disabled = true;
-      btn.innerHTML = '<div class="loading"></div>';
-      
-      try {
-        const result = await apiRequest('recordAttendance', {
-          date, class: document.getElementById('attClass').value, 
-          rollNumber: roll, studentName: name, status, session, recordedBy: currentUser.username
-        });
-        if (result?.success) {
-          showMessage('✅ Attendance saved!', 'success');
-          document.getElementById('attRoll').value = '';
-          document.getElementById('attName').value = '';
-        }
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '💾 Save Attendance';
-      }
-    }
+      if(!name || name.includes("not found")) return showMessage("Select a valid student", "error");
 
-    async function markAllPresent() {
-      const date = document.getElementById('attDate').value;
-      const className = document.getElementById('attClass').value;
-      const session = document.querySelector('.session-btn.active').dataset.session;
-      
-      if (!date || !className) return showMessage('Date and Class required!', 'error');
-      
-      const btn = event.target;
+      const btn = document.getElementById('saveAttBtn');
       btn.disabled = true;
-      btn.innerHTML = '<div class="loading"></div>';
-      
-      try {
-        const result = await apiRequest('markAllPresent', {
-          date, class: className, session, recordedBy: currentUser.username
-        });
-        if (result?.success) {
-          showMessage(`✅ ${result.count || 0} students marked present!`, 'success');
-        }
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '📋 Mark All Present';
-      }
-    }
+      btn.innerHTML = '<div class="loading-spinner"></div> Saving...';
 
-    async function registerStudent() {
-      if (currentUser.role !== 'admin') return showMessage('Admin only!', 'error');
-      
-      const data = {
-        name: document.getElementById('regName').value,
-        motherName: document.getElementById('regMother').value,
-        dob: document.getElementById('regDob').value,
-        pob: document.getElementById('regPob').value,
-        phone: document.getElementById('regPhone').value,
-        class: document.getElementById('regClass').value
-      };
-      
-      if (!data.name || !data.class) return showMessage('Name and Class required!', 'error');
-      
-      const btn = event.target;
-      btn.disabled = true;
-      btn.innerHTML = '<div class="loading"></div>';
-      
-      try {
-        const result = await apiRequest('addStudent', data);
-        if (result?.success) {
-          showMessage('✅ Student registered!', 'success');
-          document.getElementById('regName').value = '';
-          // Clear other fields...
-        }
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '➕ Register Student';
-      }
-    }
-
-    async function processFee() {
-      if (currentUser.role !== 'admin') return showMessage('Admin only!', 'error');
-      
-      const data = {
-        student: document.getElementById('feeStudent').value,
-        roll: document.getElementById('feeRoll').value,
-        class: document.getElementById('feeClass').value,
-        amount: document.getElementById('feeAmount').value,
+      const res = await api('recordAttendance', {
+        date: document.getElementById('attDate').value,
+        class: document.getElementById('attClass').value,
+        rollNumber: document.getElementById('attRoll').value,
+        studentName: name,
+        status: document.querySelector('.status-btn.active').dataset.status,
+        session: 'morning',
         recordedBy: currentUser.username
-      };
-      
-      if (!data.student || !data.roll || !data.amount) return showMessage('All fields required!', 'error');
-      
-      const btn = event.target;
-      btn.disabled = true;
-      btn.innerHTML = '<div class="loading"></div>';
-      
-      try {
-        const result = await apiRequest('processFee', data);
-        if (result?.success) {
-          showMessage('✅ Fee recorded!', 'success');
-          document.getElementById('feeAmount').value = '';
-        }
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = '💳 Record Payment';
+      });
+
+      if(res.success) {
+        showMessage("Entry Saved Successfully!");
+        document.getElementById('attRoll').value = "";
+        document.getElementById('attName').value = "";
       }
-    }
+      btn.disabled = false;
+      btn.innerHTML = "💾 Save Entry";
+    };
 
-    function logout() {
-      currentUser = null;
-      document.getElementById('loginContainer').style.display = 'block';
-      document.getElementById('appContainer').style.display = 'none';
-      document.getElementById('loginForm').reset();
-    }
+    window.markAllPresent = async () => {
+      const btn = document.getElementById('markAllBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="loading-spinner"></div> Processing...';
 
-    // Initialize
+      const res = await api('markAllPresent', {
+        date: document.getElementById('attDate').value,
+        class: document.getElementById('attClass').value,
+        session: 'morning',
+        recordedBy: currentUser.username
+      });
+
+      if(res.success) showMessage(`${res.count} students marked present!`);
+      else showMessage(res.message || "Error", "error");
+      
+      btn.disabled = false;
+      btn.innerHTML = "📋 Mark All Class Present";
+    };
+
+    window.registerStudent = async () => {
+      const name = document.getElementById('regName').value;
+      if(!name) return showMessage("Name is required", "error");
+
+      const btn = document.getElementById('regBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="loading-spinner"></div> Adding...';
+
+      const res = await api('addStudent', {
+        name,
+        class: document.getElementById('regClass').value,
+        motherName: document.getElementById('regMother').value,
+        dob: document.getElementById('regDob').value
+      });
+
+      if(res.success) {
+        showMessage("Success! New ID: " + res.id);
+        document.getElementById('regName').value = "";
+        loadStudents(); // Refresh cache
+      }
+      btn.disabled = false;
+      btn.innerHTML = "➕ Add to School";
+    };
+
+    window.processFee = async () => {
+      const roll = document.getElementById('feeRoll').value;
+      const amt = document.getElementById('feeAmount').value;
+      const name = document.getElementById('feeName').value;
+      if(!roll || !amt || name.includes("not found")) return showMessage("Fill all fields correctly", "error");
+
+      const btn = document.getElementById('feeBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="loading-spinner"></div> Processing...';
+
+      const res = await api('processFee', {
+        student: name,
+        roll: roll,
+        class: 'N/A',
+        amount: amt,
+        recordedBy: currentUser.username
+      });
+
+      if(res.success) {
+        showMessage("Payment Recorded!");
+        document.getElementById('feeRoll').value = "";
+        document.getElementById('feeAmount').value = "";
+      }
+      btn.disabled = false;
+      btn.innerHTML = "💳 Process Payment";
+    };
+
+    // Auto-focus on load
     document.addEventListener('DOMContentLoaded', () => {
-      setToday();
       document.getElementById('username').focus();
     });
   </script>
