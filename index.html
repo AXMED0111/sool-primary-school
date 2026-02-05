@@ -7,7 +7,7 @@
   <style>
     :root { --primary: #3b82f6; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --bg: #f3f4f6; }
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: -apple-system, sans-serif; background: #667eea; min-height: 100vh; padding: 15px; }
+    body { font-family: -apple-system, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height: 100vh; padding: 15px; }
     .container { max-width: 550px; margin: 0 auto; }
     .card { background: white; border-radius: 16px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); margin-bottom: 20px; }
     h1 { text-align: center; margin-bottom: 20px; color: #1e293b; }
@@ -23,7 +23,7 @@
     .tab-btn.active { background: var(--primary); color: white; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-    .message { padding: 12px; border-radius: 8px; margin: 10px 0; text-align: center; display: none; }
+    .message { padding: 12px; border-radius: 8px; margin: 10px 0; text-align: center; display: none; font-weight: 600; }
     .success { background: #d1fae5; color: #065f46; }
     .error { background: #fee2e2; color: #991b1b; }
     
@@ -43,17 +43,24 @@
     .badge-paid { background: #d1fae5; color: #065f46; }
     .badge-pending { background: #fee2e2; color: #991b1b; }
     
-    .loading { opacity: 0.6; pointer-events: none; }
+    .loading-overlay { 
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: rgba(255,255,255,0.7); z-index: 1000; align-items: center; justify-content: center;
+    }
+    body.loading .loading-overlay { display: flex; }
   </style>
 </head>
 <body>
 
+  <div class="loading-overlay"><b>Processing...</b></div>
+
+  <!-- Login Section -->
   <div class="container" id="loginView">
     <div class="card">
       <h1>🏫 Sool School</h1>
       <form id="loginForm">
         <label>Username</label>
-        <input type="text" id="user" placeholder="Username" required>
+        <input type="text" id="user" placeholder="Enter Username" required>
         <label>Password</label>
         <input type="password" id="pass" placeholder="••••••••" required>
         <button type="submit" class="btn btn-primary" id="loginBtn">Login</button>
@@ -62,6 +69,7 @@
     </div>
   </div>
 
+  <!-- Main App Section -->
   <div class="container" id="appView" style="display:none">
     <div class="card">
       <div id="header" style="text-align:center; margin-bottom:15px">
@@ -81,7 +89,7 @@
       <div id="attTab" class="tab-content active">
         <label>Date</label>
         <input type="date" id="attDate">
-        <label>Class (Active Students Only)</label>
+        <label>Class</label>
         <select id="attClass" onchange="filterClassList()">
           <option value="">-- Select --</option>
           <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
@@ -117,80 +125,67 @@
           <div class="stat-card"><div class="stat-val" id="statDropout" style="color:var(--danger)">0</div><div class="stat-label">Dropouts</div></div>
           <div class="stat-card"><div class="stat-val" id="statInactive" style="color:var(--warning)">0</div><div class="stat-label">Inactive</div></div>
         </div>
-        <button class="btn btn-primary" onclick="refreshData()">🔄 Refresh Stats</button>
+        <button class="btn btn-primary" onclick="refreshData()">🔄 Refresh Data</button>
       </div>
 
       <!-- Student List Tab -->
       <div id="listTab" class="tab-content">
         <h3>Student Records</h3>
-        <label>Filter by Status</label>
+        <label>Filter Status</label>
         <select id="listFilter" onchange="renderStudentTable()">
           <option value="all">All Students</option>
           <option value="active">Active Only</option>
           <option value="inactive">Inactive Only</option>
           <option value="dropout">Dropouts Only</option>
         </select>
-        
-        <button class="btn btn-warning" onclick="exportToCSV()" style="margin-bottom:10px">📥 Export Filtered List (CSV)</button>
-
+        <button class="btn btn-warning" onclick="exportToCSV()" style="margin-bottom:10px">📥 Export CSV</button>
         <div class="student-table-container">
           <table id="studentTable">
-            <thead>
-              <tr><th>ID</th><th>Name</th><th>Class</th><th>Status</th></tr>
-            </thead>
+            <thead><tr><th>ID</th><th>Name</th><th>Class</th><th>Status</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
       </div>
 
-      <!-- Registration Tab (Admin Only) -->
+      <!-- Registration Tab (Admin) -->
       <div id="regTab" class="tab-content">
-        <h3>Register New Student</h3>
-        <label>Student Full Name</label><input type="text" id="rName">
+        <h3>New Registration</h3>
+        <label>Full Name</label><input type="text" id="rName">
         <label>Mother's Name</label><input type="text" id="rMother">
         <label>Date of Birth</label><input type="date" id="rDob">
-        <label>Grade/Class</label>
+        <label>Grade</label>
         <select id="rClass">
           <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
           <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
-          <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
-          <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
         </select>
-        <label>Initial Status</label>
+        <label>Status</label>
         <select id="rStatus">
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
           <option value="dropout">Dropout</option>
         </select>
-        <button class="btn btn-primary" onclick="doRegister()">Add Student</button>
+        <button class="btn btn-primary" onclick="doRegister()">Register Student</button>
       </div>
 
-      <!-- Fee Tab (Admin Only) -->
+      <!-- Fee Tab (Admin) -->
       <div id="feeTab" class="tab-content">
         <h3>Fee Management</h3>
         <div style="background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-          <h4>New Payment</h4>
           <label>Roll #</label><input type="number" id="fRoll" oninput="lookupFee()">
           <label>Name</label><input type="text" id="fName" readonly style="background:#eee">
           <label>Amount ($)</label><input type="number" id="fAmt">
-          <button class="btn btn-success" onclick="doFee()">Process Payment</button>
+          <button class="btn btn-success" onclick="doFee()">Process Fee</button>
         </div>
-
-        <div style="border-top: 2px solid #e2e8f0; padding-top: 15px;">
-          <h4>Payment Status Report</h4>
-          <label>Show Only Unpaid</label>
-          <select id="feeFilter" onchange="renderFeeReport()">
-            <option value="unpaid">Unpaid Students</option>
-            <option value="all">All Active Students</option>
-          </select>
-          <div class="student-table-container">
-            <table id="feeReportTable">
-              <thead>
-                <tr><th>Roll #</th><th>Name</th><th>Status</th></tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
+        <h4>Fee Report</h4>
+        <select id="feeFilter" onchange="renderFeeReport()">
+          <option value="unpaid">Unpaid Students</option>
+          <option value="all">All Active</option>
+        </select>
+        <div class="student-table-container">
+          <table id="feeReportTable">
+            <thead><tr><th>Roll #</th><th>Name</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+          </table>
         </div>
       </div>
 
@@ -199,7 +194,9 @@
   </div>
 
   <script>
-    const API = 'REPLACE_WITH_YOUR_WEB_APP_URL';
+    // CRITICAL: Replace this with your Google Web App URL
+    const API = 'https://script.google.com/macros/s/AKfycbzy-W4U68JJ4NFzVXaZjvteFC72qhiUfb4wIYhUokQY__SkXAHwCFuPqQtJxjoPhzqS0A/exec';
+    
     let user = null;
     let students = [];
     let fees = [];
@@ -210,27 +207,45 @@
       el.textContent = text;
       el.className = `message ${type}`;
       el.style.display = 'block';
-      setTimeout(() => el.style.display = 'none', 4000);
+      setTimeout(() => el.style.display = 'none', 5000);
     }
 
     async function call(action, data={}) {
+      if (API.includes('REPLACE_WITH')) {
+        msg("Missing API URL! Update line 177.", "error");
+        return { error: true };
+      }
       document.body.classList.add('loading');
       try {
-        const r = await fetch(API, { method: 'POST', body: JSON.stringify({...data, action}) });
-        const res = await r.json();
+        const r = await fetch(API, { 
+          method: 'POST', 
+          mode: 'no-cors', // Try removing this if login fails with "Network Error"
+          body: JSON.stringify({...data, action}) 
+        });
+        
+        // Note: Apps Script POST requires complex handling. 
+        // If 'no-cors' is used, we can't read response. 
+        // Usually, the Standard Fetch (with cors) works if deployed correctly.
+        const r2 = await fetch(API, { method: 'POST', body: JSON.stringify({...data, action}) });
+        const res = await r2.json();
         document.body.classList.remove('loading');
         return res;
       } catch(e) {
         document.body.classList.remove('loading');
-        msg("Connection Error", "error");
+        msg("Network/API Error - Check Deployment", "error");
+        console.error(e);
         return { error: true };
       }
     }
 
     document.getElementById('loginForm').onsubmit = async (e) => {
       e.preventDefault();
-      const res = await call('login', { username: document.getElementById('user').value, password: document.getElementById('pass').value });
-      if(res.success) {
+      const res = await call('login', { 
+        username: document.getElementById('user').value, 
+        password: document.getElementById('pass').value 
+      });
+      
+      if(res && res.success) {
         user = res.user;
         document.getElementById('loginView').style.display = 'none';
         document.getElementById('appView').style.display = 'block';
@@ -245,20 +260,16 @@
         }
         await refreshData();
       } else {
-        msg("Invalid Login", "error");
+        msg(res.message || "Login failed - Check Credentials/Sheet", "error");
       }
     };
 
     async function refreshData() {
       const sData = await call('getStudents');
-      // Note: Assuming your backend can return fees if requested, or we simulate fee tracking
-      // For this version, we will handle 'getFees' if your backend script supports it, 
-      // otherwise we assume 'fees' is an empty array or fetched separately.
       if(Array.isArray(sData)) {
         students = sData;
         updateStats();
         renderStudentTable();
-        // Trigger fee report if on admin
         if(user && user.role === 'admin') renderFeeReport();
       }
     }
@@ -284,24 +295,11 @@
       const filter = document.getElementById('feeFilter').value;
       const tbody = document.querySelector('#feeReportTable tbody');
       tbody.innerHTML = '';
-      
-      // Logic: A student has paid if their Roll Number exists in the "Fees" records
-      // In a real app, you would fetch the 'Fees' sheet rows here.
-      // For now, we compare against local 'fees' array which would be populated from backend.
-      
       const activeStudents = students.filter(s => s.Status === 'active');
-      
       activeStudents.forEach(s => {
         const hasPaid = fees.some(f => String(f.rollNumber) === String(s.ID));
         if(filter === 'unpaid' && hasPaid) return;
-        
-        tbody.innerHTML += `
-          <tr>
-            <td>${s.ID}</td>
-            <td>${s.Name}</td>
-            <td><span class="badge badge-${hasPaid ? 'paid' : 'pending'}">${hasPaid ? 'Paid' : 'Unpaid'}</span></td>
-          </tr>
-        `;
+        tbody.innerHTML += `<tr><td>${s.ID}</td><td>${s.Name}</td><td><span class="badge badge-${hasPaid ? 'paid' : 'pending'}">${hasPaid ? 'Paid' : 'Unpaid'}</span></td></tr>`;
       });
     }
 
@@ -312,10 +310,7 @@
       filtered.forEach(s => { csv += `${s.ID},"${s.Name}","${s.MotherName || ''}",${s.Class},${s.Status}\n`; });
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `students_${filter}.csv`;
-      a.click();
+      const a = document.createElement('a'); a.href = url; a.download = `students_${filter}.csv`; a.click();
     };
 
     window.showTab = (t) => {
@@ -386,8 +381,7 @@
       const name = document.getElementById('rName').value;
       if(!name) return msg("Name required", "error");
       const res = await call('addStudent', {
-        name, 
-        motherName: document.getElementById('rMother').value,
+        name, motherName: document.getElementById('rMother').value,
         dob: document.getElementById('rDob').value,
         class: document.getElementById('rClass').value,
         status: document.getElementById('rStatus').value
@@ -401,14 +395,12 @@
       const name = document.getElementById('fName').value;
       if(!roll || !amt || !name) return msg("Fill all fields", "error");
       const res = await call('processFee', {
-        student: name,
-        roll, amount: amt, recordedBy: user.username, class: 'N/A'
+        student: name, roll, amount: amt, recordedBy: user.username, class: 'N/A'
       });
       if(res.success) { 
         msg("Payment Logged"); 
-        fees.push({ rollNumber: roll }); // Update local cache
-        document.getElementById('fRoll').value = ""; 
-        document.getElementById('fAmt').value = ""; 
+        fees.push({ rollNumber: roll });
+        document.getElementById('fRoll').value = ""; document.getElementById('fAmt').value = ""; 
         renderFeeReport();
       }
     };
