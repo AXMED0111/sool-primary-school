@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sool Primary School Management</title>
   <style>
-    :root { --primary: #3b82f6; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --bg: #f3f4f6; }
+    :root { --primary: #3b82f6; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --info: #0ea5e9; --purple: #8b5cf6; --bg: #f3f4f6; }
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family: -apple-system, sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height: 100vh; padding: 15px; }
     .container { max-width: 550px; margin: 0 auto; }
@@ -27,11 +27,13 @@
     .success { background: #d1fae5; color: #065f46; }
     .error { background: #fee2e2; color: #991b1b; }
     
+    /* Stats Grid */
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
     .stat-card { padding: 15px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; text-align: center; }
     .stat-val { font-size: 24px; font-weight: 800; color: var(--primary); }
     .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; }
 
+    /* Tables */
     .student-table-container { overflow-x: auto; margin-top: 10px; border: 1px solid #e5e7eb; border-radius: 8px; max-height: 400px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th { background: #f9fafb; padding: 10px; text-align: left; border-bottom: 2px solid #e5e7eb; position: sticky; top: 0; }
@@ -40,9 +42,18 @@
     .badge-active { background: #d1fae5; color: #065f46; }
     .badge-inactive { background: #fef3c7; color: #92400e; }
     .badge-dropout { background: #fee2e2; color: #991b1b; }
-    .badge-paid { background: #d1fae5; color: #065f46; }
-    .badge-pending { background: #fee2e2; color: #991b1b; }
     
+    /* Attendance Buttons Grid */
+    .att-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+    .att-btn { padding: 12px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+    .att-btn:hover { background: #f3f4f6; }
+    
+    /* Active States for Attendance Buttons */
+    .att-btn.present.active { background: var(--success); color: white; border-color: var(--success); }
+    .att-btn.absent.active { background: var(--danger); color: white; border-color: var(--danger); }
+    .att-btn.late.active { background: var(--warning); color: white; border-color: var(--warning); }
+    .att-btn.sick.active { background: var(--purple); color: white; border-color: var(--purple); }
+
     .loading-overlay { 
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
       background: rgba(255,255,255,0.7); z-index: 1000; align-items: center; justify-content: center;
@@ -54,7 +65,6 @@
 
   <div class="loading-overlay"><b>Processing...</b></div>
 
-  <!-- Login Section -->
   <div class="container" id="loginView">
     <div class="card">
       <h1>🏫 Sool School</h1>
@@ -69,7 +79,6 @@
     </div>
   </div>
 
-  <!-- Main App Section -->
   <div class="container" id="appView" style="display:none">
     <div class="card">
       <div id="header" style="text-align:center; margin-bottom:15px">
@@ -85,7 +94,6 @@
 
       <div id="appMsg" class="message"></div>
 
-      <!-- Attendance Tab -->
       <div id="attTab" class="tab-content active">
         <label>Date</label>
         <input type="date" id="attDate">
@@ -108,15 +116,16 @@
           <input type="text" id="rollName" readonly style="background:#eee">
           
           <label>Status</label>
-          <div style="display:flex; gap:5px; margin-bottom:15px">
-            <button class="tab-btn active" style="flex:1" onclick="setAttStatus(this, 'present')">Present</button>
-            <button class="tab-btn" style="flex:1" onclick="setAttStatus(this, 'absent')">Absent</button>
+          <div class="att-btn-grid">
+            <div class="att-btn present active" onclick="setAttStatus(this, 'present')">Present</div>
+            <div class="att-btn absent" onclick="setAttStatus(this, 'absent')">Absent</div>
+            <div class="att-btn late" onclick="setAttStatus(this, 'late')">Late</div>
+            <div class="att-btn sick" onclick="setAttStatus(this, 'sick')">Sick</div>
           </div>
           <button class="btn btn-primary" onclick="saveOne()">Save Entry</button>
         </div>
       </div>
 
-      <!-- Statistics Tab -->
       <div id="statsTab" class="tab-content">
         <h3>School Overview</h3>
         <div class="stats-grid">
@@ -128,7 +137,6 @@
         <button class="btn btn-primary" onclick="refreshData()">🔄 Refresh Data</button>
       </div>
 
-      <!-- Student List Tab -->
       <div id="listTab" class="tab-content">
         <h3>Student Records</h3>
         <label>Filter Status</label>
@@ -147,16 +155,21 @@
         </div>
       </div>
 
-      <!-- Registration Tab (Admin) -->
       <div id="regTab" class="tab-content">
         <h3>New Registration</h3>
         <label>Full Name</label><input type="text" id="rName">
         <label>Mother's Name</label><input type="text" id="rMother">
         <label>Date of Birth</label><input type="date" id="rDob">
+        <label>Place of Birth (POB)</label><input type="text" id="rPob" placeholder="City/Region">
+        <label>Phone Number</label><input type="text" id="rPhone">
+        <label>School Transfer From (Optional)</label><input type="text" id="rTransfer" placeholder="Previous School Name">
+        
         <label>Grade</label>
         <select id="rClass">
           <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
           <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
+          <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
+          <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
         </select>
         <label>Status</label>
         <select id="rStatus">
@@ -167,7 +180,6 @@
         <button class="btn btn-primary" onclick="doRegister()">Register Student</button>
       </div>
 
-      <!-- Fee Tab (Admin) -->
       <div id="feeTab" class="tab-content">
         <h3>Fee Management</h3>
         <div style="background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
@@ -194,12 +206,14 @@
   </div>
 
   <script>
-    // CRITICAL: Replace this with your Google Web App URL
-    const API = 'https://script.google.com/macros/s/AKfycbzy-W4U68JJ4NFzVXaZjvteFC72qhiUfb4wIYhUokQY__SkXAHwCFuPqQtJxjoPhzqS0A/exec';
+    // ------------------------------------------------------------------
+    // REPLACE THIS URL WITH YOUR NEW DEPLOYMENT URL
+    const API = 'https://script.google.com/macros/s/AKfycbyaipIR-dxDk1VSqFUQeGEB6qylLZJk6WZWwqTFp5UPzQkB3YDwz0Fpjuifc11RzDf4mQ/exec';
+    // ------------------------------------------------------------------
     
     let user = null;
     let students = [];
-    let fees = [];
+    let fees = []; // In a real app, you'd fetch this from backend
     let currentAttStatus = 'present';
 
     function msg(text, type='success') {
@@ -212,28 +226,18 @@
 
     async function call(action, data={}) {
       if (API.includes('REPLACE_WITH')) {
-        msg("Missing API URL! Update line 177.", "error");
+        msg("Missing API URL! Update line 192.", "error");
         return { error: true };
       }
       document.body.classList.add('loading');
       try {
-        const r = await fetch(API, { 
-          method: 'POST', 
-          mode: 'no-cors', // Try removing this if login fails with "Network Error"
-          body: JSON.stringify({...data, action}) 
-        });
-        
-        // Note: Apps Script POST requires complex handling. 
-        // If 'no-cors' is used, we can't read response. 
-        // Usually, the Standard Fetch (with cors) works if deployed correctly.
-        const r2 = await fetch(API, { method: 'POST', body: JSON.stringify({...data, action}) });
-        const res = await r2.json();
+        const r = await fetch(API, { method: 'POST', body: JSON.stringify({...data, action}) });
+        const res = await r.json();
         document.body.classList.remove('loading');
         return res;
       } catch(e) {
         document.body.classList.remove('loading');
-        msg("Network/API Error - Check Deployment", "error");
-        console.error(e);
+        msg("Network/API Error", "error");
         return { error: true };
       }
     }
@@ -260,7 +264,7 @@
         }
         await refreshData();
       } else {
-        msg(res.message || "Login failed - Check Credentials/Sheet", "error");
+        msg(res.message || "Login failed", "error");
       }
     };
 
@@ -346,7 +350,8 @@
     };
 
     window.setAttStatus = (btn, s) => {
-      btn.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      // Remove active from all siblings
+      btn.parentElement.querySelectorAll('.att-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentAttStatus = s;
     };
@@ -360,7 +365,7 @@
         class: document.getElementById('attClass').value || 'Manual',
         rollNumber: roll,
         studentName: name,
-        status: currentAttStatus,
+        status: currentAttStatus, // 'present', 'absent', 'late', 'sick'
         session: 'morning',
         recordedBy: user.username
       });
@@ -380,12 +385,18 @@
     window.doRegister = async () => {
       const name = document.getElementById('rName').value;
       if(!name) return msg("Name required", "error");
+      
       const res = await call('addStudent', {
-        name, motherName: document.getElementById('rMother').value,
+        name, 
+        motherName: document.getElementById('rMother').value,
         dob: document.getElementById('rDob').value,
+        pob: document.getElementById('rPob').value,             // New
+        phone: document.getElementById('rPhone').value,         // New
+        transferFrom: document.getElementById('rTransfer').value, // New
         class: document.getElementById('rClass').value,
         status: document.getElementById('rStatus').value
       });
+      
       if(res.success) { msg("Added! ID: "+res.id); refreshData(); }
     };
 
