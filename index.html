@@ -42,9 +42,11 @@
     .badge-dropout { background: #fee2e2; color: #991b1b; }
 
     .att-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-    .att-btn { padding: 12px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: center;}
-    .att-btn.present.active { background: var(--success); color: white; }
-    .att-btn.absent.active { background: var(--danger); color: white; }
+    .att-btn { padding: 12px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: center; transition: 0.2s;}
+    .att-btn.present.active { background: var(--success); color: white; border-color: var(--success); }
+    .att-btn.absent.active { background: var(--danger); color: white; border-color: var(--danger); }
+    .att-btn.late.active { background: var(--warning); color: white; border-color: var(--warning); }
+    .att-btn.sick.active { background: var(--purple); color: white; border-color: var(--purple); }
     
     .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 1000; align-items: center; justify-content: center;}
     body.loading .loading-overlay { display: flex; }
@@ -112,6 +114,8 @@
         <div class="att-btn-grid">
           <div class="att-btn present active" onclick="setAttStatus(this, 'present')">Present</div>
           <div class="att-btn absent" onclick="setAttStatus(this, 'absent')">Absent</div>
+          <div class="att-btn late" onclick="setAttStatus(this, 'late')">Late</div>
+          <div class="att-btn sick" onclick="setAttStatus(this, 'sick')">Sick</div>
         </div>
         <button class="btn btn-primary" onclick="saveOne()">Save Entry</button>
       </div>
@@ -147,7 +151,7 @@
         </div>
       </div>
 
-      <!-- Reg Tab -->
+      <!-- Registration Tab -->
       <div id="regTab" class="tab-content">
         <h3>Registration</h3>
         <label>Full Name</label><input type="text" id="rName">
@@ -155,6 +159,7 @@
         <label>DOB</label><input type="date" id="rDob">
         <label>Place of Birth</label><input type="text" id="rPob">
         <label>Phone</label><input type="text" id="rPhone">
+        <label>Transfer From</label><input type="text" id="rTransfer" placeholder="Previous School Name">
         <label>Grade</label>
         <select id="rClass">
           <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option><option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
@@ -169,11 +174,22 @@
       <div id="feeTab" class="tab-content">
         <h3>Fees</h3>
         <div style="background:#f1f5f9; padding:15px; border-radius:12px; margin-bottom:20px">
-          <label>Roll #</label><input type="number" id="fRoll" oninput="lookupFee()">
-          <input type="text" id="fName" readonly style="background:#eee" placeholder="Student Name">
+          <label>Grade Level</label>
+          <select id="fClass" onchange="lookupFee()">
+            <option value="">-- Select --</option>
+            <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
+            <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
+            <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
+            <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
+          </select>
+          <label>Roll #</label><input type="number" id="fRoll" oninput="lookupFee()" placeholder="Enter Roll #">
+          <input type="text" id="fName" readonly style="background:#eee" placeholder="Name will appear after Grade & Roll #">
           <label>Amount ($)</label><input type="number" id="fAmt">
           <label>Fee Session</label>
-          <select id="fSession"><option value="Term 1">Term 1</option><option value="Term 2">Term 2</option></select>
+          <select id="fSession">
+            <option value="Term 1">Term 1</option>
+            <option value="Term 2">Term 2</option>
+          </select>
           <button class="btn btn-success" onclick="doFee()">Save Payment</button>
         </div>
       </div>
@@ -183,7 +199,7 @@
   </div>
 
   <script>
-    const API = 'https://script.google.com/macros/s/AKfycbx3yTYP-9ck4Jdv9fpl10iFDCNTTimXA0Hyy2AaaYhU2ZrVEIb7ltXYMAI9y2QIeneUxA/exec';
+    const API = 'REPLACE_WITH_YOUR_WEB_APP_URL';
     let user = null, students = [], currentAttStatus = 'present';
 
     function msg(text, type='success') {
@@ -246,8 +262,8 @@
     }
 
     function exportCSV() {
-      let csv = "ID,Name,Mother,Class,Status\n";
-      students.forEach(s => csv += `${s.ID},"${s.Name}","${s.MotherName||''}",${s.Class},${s.Status}\n`);
+      let csv = "ID,Name,Mother,Class,Status,TransferFrom\n";
+      students.forEach(s => csv += `${s.ID},"${s.Name}","${s.MotherName||''}",${s.Class},${s.Status},"${s.TransferFrom||''}"\n`);
       const blob = new Blob([csv], { type: 'text/csv' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'students_list.csv'; a.click();
     }
@@ -261,7 +277,7 @@
 
     window.handleClassChange = () => {
         filterClassList();
-        lookupStudent(); // Re-check roll lookup when class changes
+        lookupStudent(); 
     };
 
     window.filterClassList = () => {
@@ -279,7 +295,6 @@
       const cls = document.getElementById('attClass').value;
       const display = document.getElementById('rollName');
 
-      // Only show name if BOTH class and roll are provided
       if(!roll || !cls) {
           display.value = "";
           display.placeholder = "Name will appear after Grade & Roll #";
@@ -301,9 +316,27 @@
     };
 
     window.lookupFee = () => {
-      const r = document.getElementById('fRoll').value;
-      const s = students.find(x => String(x.ID) === r);
-      document.getElementById('fName').value = s ? s.Name : "";
+      const roll = document.getElementById('fRoll').value;
+      const cls = document.getElementById('fClass').value;
+      const display = document.getElementById('fName');
+
+      if(!roll || !cls) {
+          display.value = "";
+          display.placeholder = "Name will appear after Grade & Roll #";
+          return;
+      }
+
+      const s = students.find(x => 
+        String(x.ID) === roll && 
+        String(x.Class) === cls
+      );
+
+      if(s) {
+          display.value = s.Name;
+      } else {
+          display.value = "";
+          display.placeholder = "Student not found in this class";
+      }
     };
 
     window.setAttStatus = (btn, s) => {
@@ -346,22 +379,36 @@
       const res = await call('addStudent', {
         name, motherName: document.getElementById('rMother').value, dob: document.getElementById('rDob').value,
         pob: document.getElementById('rPob').value, phone: document.getElementById('rPhone').value,
+        transferFrom: document.getElementById('rTransfer').value,
         class: document.getElementById('rClass').value, status: document.getElementById('rStatus').value
       });
       if(res.success) { 
           msg("Registered ID: "+res.id); 
           document.getElementById('rName').value = "";
+          document.getElementById('rMother').value = "";
+          document.getElementById('rPhone').value = "";
+          document.getElementById('rTransfer').value = "";
           refreshData(true); 
       }
     };
 
     window.doFee = async () => {
-      const roll = document.getElementById('fRoll').value, amt = document.getElementById('fAmt').value, name = document.getElementById('fName').value;
-      if(!roll || !amt) return msg("Fill all fields", "error");
+      const roll = document.getElementById('fRoll').value;
+      const amt = document.getElementById('fAmt').value;
+      const name = document.getElementById('fName').value;
+      const cls = document.getElementById('fClass').value;
+      
+      if(!roll || !amt || !cls || !name) return msg("Fill all fields", "error");
       const res = await call('processFee', {
-        student: name, roll, amount: amt, session: document.getElementById('fSession').value, recordedBy: user.username, class: 'N/A'
+        student: name, roll, amount: amt, session: document.getElementById('fSession').value, 
+        recordedBy: user.username, class: cls
       });
-      if(res.success) { msg("Payment Saved"); document.getElementById('fRoll').value = ""; document.getElementById('fAmt').value = ""; document.getElementById('fName').value = ""; }
+      if(res.success) { 
+        msg("Payment Saved"); 
+        document.getElementById('fRoll').value = ""; 
+        document.getElementById('fAmt').value = ""; 
+        document.getElementById('fName').value = ""; 
+      }
     };
   </script>
 </body>
