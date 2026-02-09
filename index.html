@@ -27,13 +27,11 @@
     .success { background: #d1fae5; color: #065f46; }
     .error { background: #fee2e2; color: #991b1b; }
     
-    /* Stats Grid */
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
     .stat-card { padding: 15px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; text-align: center; }
     .stat-val { font-size: 24px; font-weight: 800; color: var(--primary); }
     .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; }
 
-    /* Tables */
     .student-table-container { overflow-x: auto; margin-top: 10px; border: 1px solid #e5e7eb; border-radius: 8px; max-height: 400px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th { background: #f9fafb; padding: 10px; text-align: left; border-bottom: 2px solid #e5e7eb; position: sticky; top: 0; }
@@ -43,21 +41,14 @@
     .badge-inactive { background: #fef3c7; color: #92400e; }
     .badge-dropout { background: #fee2e2; color: #991b1b; }
     
-    /* Attendance Buttons Grid */
     .att-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-    .att-btn { padding: 12px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
-    .att-btn:hover { background: #f3f4f6; }
-    
-    /* Active States for Attendance Buttons */
+    .att-btn { padding: 12px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; text-align: center;}
     .att-btn.present.active { background: var(--success); color: white; border-color: var(--success); }
     .att-btn.absent.active { background: var(--danger); color: white; border-color: var(--danger); }
     .att-btn.late.active { background: var(--warning); color: white; border-color: var(--warning); }
     .att-btn.sick.active { background: var(--purple); color: white; border-color: var(--purple); }
 
-    .loading-overlay { 
-      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-      background: rgba(255,255,255,0.7); z-index: 1000; align-items: center; justify-content: center;
-    }
+    .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 1000; align-items: center; justify-content: center;}
     body.loading .loading-overlay { display: flex; }
   </style>
 </head>
@@ -70,10 +61,10 @@
       <h1>🏫 Sool School</h1>
       <form id="loginForm">
         <label>Username</label>
-        <input type="text" id="user" placeholder="Enter Username" required>
+        <input type="text" id="user" placeholder="Username" required>
         <label>Password</label>
         <input type="password" id="pass" placeholder="••••••••" required>
-        <button type="submit" class="btn btn-primary" id="loginBtn">Login</button>
+        <button type="submit" class="btn btn-primary">Login</button>
       </form>
       <div id="loginMsg" class="message"></div>
     </div>
@@ -81,7 +72,7 @@
 
   <div class="container" id="appView" style="display:none">
     <div class="card">
-      <div id="header" style="text-align:center; margin-bottom:15px">
+      <div style="text-align:center; margin-bottom:15px">
         <h2 id="greet">Welcome</h2>
         <small id="roleDisplay" style="color:#666; text-transform:uppercase"></small>
       </div>
@@ -89,64 +80,76 @@
       <div class="tabs" id="nav">
         <button class="tab-btn active" onclick="showTab('att')">Attendance</button>
         <button class="tab-btn" onclick="showTab('stats')">Statistics</button>
-        <button class="tab-btn" onclick="showTab('list')">Student List</button>
+        <button class="tab-btn" onclick="showTab('list')">Students</button>
       </div>
 
       <div id="appMsg" class="message"></div>
+      <div id="dataStatus" style="text-align:center; font-size:11px; color:#999; display:none">🔄 Syncing list...</div>
 
+      <!-- Attendance Tab -->
       <div id="attTab" class="tab-content active">
-        <label>Date</label>
-        <input type="date" id="attDate">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
+          <div>
+            <label>Date</label>
+            <input type="date" id="attDate">
+          </div>
+          <div>
+            <label>Session</label>
+            <select id="attSession">
+              <option value="Morning">Morning</option>
+              <option value="After Break">After Break</option>
+            </select>
+          </div>
+        </div>
+        
         <label>Class</label>
         <select id="attClass" onchange="filterClassList()">
-          <option value="">-- Select --</option>
+          <option value="">-- Select Class --</option>
           <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
           <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
           <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
           <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
         </select>
 
-        <div id="previewList" style="display:none; background:#f9fafb; padding:10px; border-radius:8px; margin-bottom:10px; max-height:150px; overflow-y:auto;"></div>
+        <div id="previewList" style="display:none; background:#f9fafb; padding:10px; border-radius:8px; margin-bottom:10px; max-height:150px; overflow-y:auto; border:1px solid #eee"></div>
         <button id="batchBtn" class="btn btn-success" style="display:none; margin-bottom:15px" onclick="markAll()">Mark All Present</button>
 
-        <div style="border-top: 1px dashed #ccc; margin: 20px 0; padding-top: 10px;">
-          <label>Student Roll #</label>
+        <div style="border-top: 1px dashed #ccc; margin-top: 20px; padding-top: 15px;">
+          <label>Individual Entry (Roll #)</label>
           <input type="number" id="rollId" placeholder="e.g. 1001" oninput="lookupStudent()">
-          <label>Name</label>
-          <input type="text" id="rollName" readonly style="background:#eee">
+          <input type="text" id="rollName" readonly style="background:#f3f4f6" placeholder="Student Name">
           
-          <label>Status</label>
           <div class="att-btn-grid">
             <div class="att-btn present active" onclick="setAttStatus(this, 'present')">Present</div>
             <div class="att-btn absent" onclick="setAttStatus(this, 'absent')">Absent</div>
             <div class="att-btn late" onclick="setAttStatus(this, 'late')">Late</div>
             <div class="att-btn sick" onclick="setAttStatus(this, 'sick')">Sick</div>
           </div>
-          <button class="btn btn-primary" onclick="saveOne()">Save Entry</button>
+          <button class="btn btn-primary" onclick="saveOne()">Save Status</button>
         </div>
       </div>
 
+      <!-- Statistics Tab -->
       <div id="statsTab" class="tab-content">
         <h3>School Overview</h3>
         <div class="stats-grid">
-          <div class="stat-card"><div class="stat-val" id="statTotal">0</div><div class="stat-label">Total Students</div></div>
+          <div class="stat-card"><div class="stat-val" id="statTotal">0</div><div class="stat-label">Students</div></div>
           <div class="stat-card"><div class="stat-val" id="statActive">0</div><div class="stat-label">Active</div></div>
           <div class="stat-card"><div class="stat-val" id="statDropout" style="color:var(--danger)">0</div><div class="stat-label">Dropouts</div></div>
           <div class="stat-card"><div class="stat-val" id="statInactive" style="color:var(--warning)">0</div><div class="stat-label">Inactive</div></div>
         </div>
-        <button class="btn btn-primary" onclick="refreshData()">🔄 Refresh Data</button>
+        <button class="btn btn-primary" style="padding:8px" onclick="refreshData(true)">🔄 Sync Data</button>
       </div>
 
+      <!-- Student List Tab -->
       <div id="listTab" class="tab-content">
-        <h3>Student Records</h3>
-        <label>Filter Status</label>
+        <h3>Records</h3>
         <select id="listFilter" onchange="renderStudentTable()">
-          <option value="all">All Students</option>
-          <option value="active">Active Only</option>
-          <option value="inactive">Inactive Only</option>
-          <option value="dropout">Dropouts Only</option>
+          <option value="all">All</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="dropout">Dropouts</option>
         </select>
-        <button class="btn btn-warning" onclick="exportToCSV()" style="margin-bottom:10px">📥 Export CSV</button>
         <div class="student-table-container">
           <table id="studentTable">
             <thead><tr><th>ID</th><th>Name</th><th>Class</th><th>Status</th></tr></thead>
@@ -155,15 +158,10 @@
         </div>
       </div>
 
+      <!-- Registration Tab -->
       <div id="regTab" class="tab-content">
-        <h3>New Registration</h3>
-        <label>Full Name</label><input type="text" id="rName">
-        <label>Mother's Name</label><input type="text" id="rMother">
-        <label>Date of Birth</label><input type="date" id="rDob">
-        <label>Place of Birth (POB)</label><input type="text" id="rPob" placeholder="City/Region">
-        <label>Phone Number</label><input type="text" id="rPhone">
-        <label>School Transfer From (Optional)</label><input type="text" id="rTransfer" placeholder="Previous School Name">
-        
+        <h3>New Student</h3>
+        <label>Name</label><input type="text" id="rName">
         <label>Grade</label>
         <select id="rClass">
           <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
@@ -171,49 +169,19 @@
           <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
           <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
         </select>
-        <label>Status</label>
-        <select id="rStatus">
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="dropout">Dropout</option>
-        </select>
-        <button class="btn btn-primary" onclick="doRegister()">Register Student</button>
+        <button class="btn btn-primary" onclick="doRegister()">Register</button>
       </div>
 
-      <div id="feeTab" class="tab-content">
-        <h3>Fee Management</h3>
-        <div style="background: #f1f5f9; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-          <label>Roll #</label><input type="number" id="fRoll" oninput="lookupFee()">
-          <label>Name</label><input type="text" id="fName" readonly style="background:#eee">
-          <label>Amount ($)</label><input type="number" id="fAmt">
-          <button class="btn btn-success" onclick="doFee()">Process Fee</button>
-        </div>
-        <h4>Fee Report</h4>
-        <select id="feeFilter" onchange="renderFeeReport()">
-          <option value="unpaid">Unpaid Students</option>
-          <option value="all">All Active</option>
-        </select>
-        <div class="student-table-container">
-          <table id="feeReportTable">
-            <thead><tr><th>Roll #</th><th>Name</th><th>Status</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <button class="btn btn-danger" style="margin-top:20px; font-size:12px" onclick="location.reload()">Logout</button>
+      <button class="btn btn-danger" style="margin-top:20px; font-size:12px; background:none; color:var(--danger); border:1px solid var(--danger)" onclick="location.reload()">Logout</button>
     </div>
   </div>
 
   <script>
-    // ------------------------------------------------------------------
-    // REPLACE THIS URL WITH YOUR NEW DEPLOYMENT URL
-    const API = 'https://script.google.com/macros/s/AKfycbxesJFB-SqV_hQ9oPxHiPFg8AHPfO2iP0s8xv_9OGcXu84Sg8mN0O1_sjbPPMhPd8NZfw/exec';
-    // ------------------------------------------------------------------
+    // REPLACE WITH YOUR URL
+    const API = 'https://script.google.com/macros/s/AKfycbx3yTYP-9ck4Jdv9fpl10iFDCNTTimXA0Hyy2AaaYhU2ZrVEIb7ltXYMAI9y2QIeneUxA/exec';
     
     let user = null;
     let students = [];
-    let fees = []; // In a real app, you'd fetch this from backend
     let currentAttStatus = 'present';
 
     function msg(text, type='success') {
@@ -221,23 +189,19 @@
       el.textContent = text;
       el.className = `message ${type}`;
       el.style.display = 'block';
-      setTimeout(() => el.style.display = 'none', 5000);
+      setTimeout(() => el.style.display = 'none', 4000);
     }
 
-    async function call(action, data={}) {
-      if (API.includes('REPLACE_WITH')) {
-        msg("Missing API URL! Update line 192.", "error");
-        return { error: true };
-      }
-      document.body.classList.add('loading');
+    async function call(action, data={}, quiet=false) {
+      if(!quiet) document.body.classList.add('loading');
       try {
         const r = await fetch(API, { method: 'POST', body: JSON.stringify({...data, action}) });
         const res = await r.json();
-        document.body.classList.remove('loading');
+        if(!quiet) document.body.classList.remove('loading');
         return res;
       } catch(e) {
-        document.body.classList.remove('loading');
-        msg("Network/API Error", "error");
+        if(!quiet) document.body.classList.remove('loading');
+        msg("Connection Failed", "error");
         return { error: true };
       }
     }
@@ -248,7 +212,6 @@
         username: document.getElementById('user').value, 
         password: document.getElementById('pass').value 
       });
-      
       if(res && res.success) {
         user = res.user;
         document.getElementById('loginView').style.display = 'none';
@@ -256,74 +219,46 @@
         document.getElementById('greet').textContent = `Hi, ${user.username}`;
         document.getElementById('roleDisplay').textContent = user.role;
         document.getElementById('attDate').valueAsDate = new Date();
-        
         if(user.role === 'admin') {
-          const nav = document.getElementById('nav');
-          nav.innerHTML += `<button class="tab-btn" onclick="showTab('reg')">Register</button>`;
-          nav.innerHTML += `<button class="tab-btn" onclick="showTab('fee')">Fees</button>`;
+          document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('reg')">Register</button>`;
         }
-        await refreshData();
-      } else {
-        msg(res.message || "Login failed", "error");
-      }
+        refreshData();
+      } else msg(res.message || "Invalid Login", "error");
     };
 
-    async function refreshData() {
-      const sData = await call('getStudents');
+    async function refreshData(manual=false) {
+      if(!manual) document.getElementById('dataStatus').style.display = 'block';
+      const sData = await call('getStudents', {}, !manual);
       if(Array.isArray(sData)) {
         students = sData;
         updateStats();
         renderStudentTable();
-        if(user && user.role === 'admin') renderFeeReport();
       }
+      document.getElementById('dataStatus').style.display = 'none';
+      if(manual) msg("Data Updated");
     }
 
     function updateStats() {
       document.getElementById('statTotal').textContent = students.length;
-      document.getElementById('statActive').textContent = students.filter(s => s.Status === 'active').length;
-      document.getElementById('statDropout').textContent = students.filter(s => s.Status === 'dropout').length;
-      document.getElementById('statInactive').textContent = students.filter(s => s.Status === 'inactive').length;
+      document.getElementById('statActive').textContent = students.filter(s => String(s.Status).toLowerCase() === 'active').length;
+      document.getElementById('statDropout').textContent = students.filter(s => String(s.Status).toLowerCase() === 'dropout').length;
+      document.getElementById('statInactive').textContent = students.filter(s => String(s.Status).toLowerCase() === 'inactive').length;
     }
 
     function renderStudentTable() {
       const filter = document.getElementById('listFilter').value;
       const tbody = document.querySelector('#studentTable tbody');
       tbody.innerHTML = '';
-      const filtered = students.filter(s => filter === 'all' || s.Status === filter);
-      filtered.forEach(s => {
-        tbody.innerHTML += `<tr><td>${s.ID}</td><td>${s.Name}</td><td>${s.Class}</td><td><span class="badge badge-${s.Status}">${s.Status}</span></td></tr>`;
+      students.filter(s => filter === 'all' || String(s.Status).toLowerCase() === filter).forEach(s => {
+        tbody.innerHTML += `<tr><td>${s.ID}</td><td>${s.Name}</td><td>${s.Class}</td><td><span class="badge badge-${String(s.Status).toLowerCase()}">${s.Status}</span></td></tr>`;
       });
     }
-
-    function renderFeeReport() {
-      const filter = document.getElementById('feeFilter').value;
-      const tbody = document.querySelector('#feeReportTable tbody');
-      tbody.innerHTML = '';
-      const activeStudents = students.filter(s => s.Status === 'active');
-      activeStudents.forEach(s => {
-        const hasPaid = fees.some(f => String(f.rollNumber) === String(s.ID));
-        if(filter === 'unpaid' && hasPaid) return;
-        tbody.innerHTML += `<tr><td>${s.ID}</td><td>${s.Name}</td><td><span class="badge badge-${hasPaid ? 'paid' : 'pending'}">${hasPaid ? 'Paid' : 'Unpaid'}</span></td></tr>`;
-      });
-    }
-
-    window.exportToCSV = () => {
-      const filter = document.getElementById('listFilter').value;
-      const filtered = students.filter(s => filter === 'all' || s.Status === filter);
-      let csv = "ID,Name,MotherName,Class,Status\n";
-      filtered.forEach(s => { csv += `${s.ID},"${s.Name}","${s.MotherName || ''}",${s.Class},${s.Status}\n`; });
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `students_${filter}.csv`; a.click();
-    };
 
     window.showTab = (t) => {
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      const target = document.getElementById(t+'Tab');
-      if(target) target.classList.add('active');
+      document.getElementById(t+'Tab').classList.add('active');
       event.target.classList.add('active');
-      if(t === 'fee') renderFeeReport();
     };
 
     window.filterClassList = () => {
@@ -331,26 +266,19 @@
       const box = document.getElementById('previewList');
       const btn = document.getElementById('batchBtn');
       if(!cls) { box.style.display = 'none'; btn.style.display = 'none'; return; }
-      const list = students.filter(s => s.Class === cls && s.Status === 'active');
-      box.innerHTML = list.map(s => `<div style="padding:4px 0; border-bottom:1px solid #eee">#${s.ID} - ${s.Name}</div>`).join('') || "No active students";
+      const list = students.filter(s => String(s.Class) === String(cls) && String(s.Status).toLowerCase() === 'active');
+      box.innerHTML = list.map(s => `<div style="padding:4px 0; border-bottom:1px solid #eee; font-size:12px">#${s.ID} - ${s.Name}</div>`).join('') || "No active students";
       box.style.display = 'block';
       btn.style.display = list.length > 0 ? 'block' : 'none';
     };
 
     window.lookupStudent = () => {
       const r = document.getElementById('rollId').value;
-      const s = students.find(x => String(x.ID) === r && x.Status === 'active');
-      document.getElementById('rollName').value = s ? s.Name : "Not found (or Inactive)";
-    };
-
-    window.lookupFee = () => {
-      const r = document.getElementById('fRoll').value;
-      const s = students.find(x => String(x.ID) === r);
-      document.getElementById('fName').value = s ? s.Name : "";
+      const s = students.find(x => String(x.ID) === r && String(x.Status).toLowerCase() === 'active');
+      document.getElementById('rollName').value = s ? s.Name : "Student not found/inactive";
     };
 
     window.setAttStatus = (btn, s) => {
-      // Remove active from all siblings
       btn.parentElement.querySelectorAll('.att-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentAttStatus = s;
@@ -359,61 +287,37 @@
     window.saveOne = async () => {
       const roll = document.getElementById('rollId').value;
       const name = document.getElementById('rollName').value;
-      if(!roll || name.includes("Not found")) return msg("Valid Roll # required", "error");
+      if(!roll || name.includes("not found")) return msg("Valid Roll Required", "error");
       const res = await call('recordAttendance', {
         date: document.getElementById('attDate').value,
-        class: document.getElementById('attClass').value || 'Manual',
+        session: document.getElementById('attSession').value,
+        class: document.getElementById('attClass').value || 'Other',
         rollNumber: roll,
         studentName: name,
-        status: currentAttStatus, // 'present', 'absent', 'late', 'sick'
-        session: 'morning',
+        status: currentAttStatus,
         recordedBy: user.username
       });
-      if(res.success) { msg("Entry Saved"); document.getElementById('rollId').value = ""; }
+      if(res.success) { msg("Saved"); document.getElementById('rollId').value = ""; }
     };
 
     window.markAll = async () => {
       const res = await call('markAllPresent', {
         date: document.getElementById('attDate').value,
+        session: document.getElementById('attSession').value,
         class: document.getElementById('attClass').value,
-        session: 'morning',
         recordedBy: user.username
       });
-      if(res.success) msg(`${res.count} marked present`);
+      if(res.success) msg(`${res.count} Students Marked Present`);
+      else msg(res.message, "error");
     };
 
     window.doRegister = async () => {
       const name = document.getElementById('rName').value;
       if(!name) return msg("Name required", "error");
-      
       const res = await call('addStudent', {
-        name, 
-        motherName: document.getElementById('rMother').value,
-        dob: document.getElementById('rDob').value,
-        pob: document.getElementById('rPob').value,             // New
-        phone: document.getElementById('rPhone').value,         // New
-        transferFrom: document.getElementById('rTransfer').value, // New
-        class: document.getElementById('rClass').value,
-        status: document.getElementById('rStatus').value
+        name, class: document.getElementById('rClass').value, status: 'active'
       });
-      
-      if(res.success) { msg("Added! ID: "+res.id); refreshData(); }
-    };
-
-    window.doFee = async () => {
-      const roll = document.getElementById('fRoll').value;
-      const amt = document.getElementById('fAmt').value;
-      const name = document.getElementById('fName').value;
-      if(!roll || !amt || !name) return msg("Fill all fields", "error");
-      const res = await call('processFee', {
-        student: name, roll, amount: amt, recordedBy: user.username, class: 'N/A'
-      });
-      if(res.success) { 
-        msg("Payment Logged"); 
-        fees.push({ rollNumber: roll });
-        document.getElementById('fRoll').value = ""; document.getElementById('fAmt').value = ""; 
-        renderFeeReport();
-      }
+      if(res.success) { msg("Success! ID: "+res.id); refreshData(true); }
     };
   </script>
 </body>
