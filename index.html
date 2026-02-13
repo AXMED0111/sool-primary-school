@@ -105,8 +105,11 @@
           <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
           <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
         </select>
+        
+        <!-- Moved list above the button -->
+        <div id="previewList" style="display:none; background:#f9fafb; padding:10px; border-radius:8px; margin: 15px 0; max-height:150px; overflow-y:auto; border:1px solid #eee"></div>
         <button id="batchBtn" class="btn btn-success" style="display:none; margin-bottom:15px" onclick="markAll()">Mark Class Present</button>
-        <div id="previewList" style="display:none; background:#f9fafb; padding:10px; border-radius:8px; margin-bottom:10px; max-height:100px; overflow-y:auto; border:1px solid #eee"></div>
+        
         <hr>
         <label style="margin-top:15px">Roll #</label>
         <input type="number" id="rollId" placeholder="Enter Roll #" oninput="lookupStudent('att')">
@@ -180,7 +183,8 @@
         <label>Grade</label>
         <select id="rClass">
           <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option><option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
-          <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option><option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
+          <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
+          <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
         </select>
         <label>Status</label>
         <select id="rStatus"><option value="active">Active</option><option value="dropout">Dropout</option><option value="inactive">Inactive</option></select>
@@ -304,18 +308,39 @@
       } 
       else if (mode === 'absent') {
         head.innerHTML = '<tr><th>Date</th><th>Name</th><th>Info</th></tr>';
+        
+        // Group by Date + Roll to prevent duplicate name rows
+        const grouped = {};
+        
         attLogs.filter(l => {
           const isAbs = l.status === 'absent' || l.status === 'sick';
           const isGrade = grade === 'all' || l.class === grade;
-          // Robust Date Comparison
           const logDate = new Date(l.date).toISOString().split('T')[0];
           const isDate = !dateVal || logDate === dateVal;
+          // Filter session before grouping if specific session is requested
           const isSession = sessionVal === 'all' || l.session === sessionVal;
-          
           return isAbs && isGrade && isDate && isSession;
         }).forEach(l => {
-          const dt = new Date(l.date).toLocaleDateString();
-          body.innerHTML += `<tr><td>${dt}</td><td>${l.name}</td><td><small>${l.class}<br>${l.session}<br><span class="badge badge-${l.status}">${l.status}</span></small></td></tr>`;
+           const logDate = new Date(l.date).toLocaleDateString();
+           const key = `${l.roll}_${logDate}`;
+           if(!grouped[key]) {
+             grouped[key] = {
+               date: logDate,
+               name: l.name,
+               class: l.class,
+               sessions: []
+             };
+           }
+           // Use M for Morning, B for After Break
+           const code = (l.session === 'Morning') ? 'M' : (l.session === 'After Break' ? 'B' : '?');
+           grouped[key].sessions.push({ code: code, status: l.status });
+        });
+
+        // Render the grouped data
+        Object.values(grouped).forEach(g => {
+           // Create the info string e.g. "M: absent B: sick"
+           const statusHtml = g.sessions.map(s => `<b>${s.code}:</b> <span class="badge badge-${s.status}">${s.status}</span>`).join(' ');
+           body.innerHTML += `<tr><td>${g.date}</td><td>${g.name}</td><td><small>${g.class}<br>${statusHtml}</small></td></tr>`;
         });
       }
       else if (mode === 'summary') {
@@ -332,7 +357,6 @@
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(t+'Tab').classList.add('active');
       
-      // Find button that calls this tab and make it active
       const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.onclick.toString().includes(t));
       if(btn) btn.classList.add('active');
       
@@ -343,6 +367,16 @@
       const cls = document.getElementById('attClass').value;
       document.getElementById('batchBtn').style.display = cls ? 'block' : 'none';
       lookupStudent(type);
+      if(type === 'att') {
+         const box = document.getElementById('previewList');
+         if(!cls) { 
+           box.style.display = 'none'; 
+         } else {
+           const list = students.filter(s => String(s.Class) === String(cls) && String(s.Status).toLowerCase() === 'active');
+           box.innerHTML = list.map(s => `<div style="padding:3px 0; font-size:11px">#${s.ID} ${s.Name}</div>`).join('') || "No active students";
+           box.style.display = 'block';
+         }
+      }
     };
 
     window.lookupStudent = (type) => {
