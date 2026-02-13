@@ -18,14 +18,14 @@
     .btn-success { background: var(--success); color: white; }
     .btn-danger { background: var(--danger); color: white; }
     .btn-warning { background: var(--warning); color: white; }
+    .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 8px; font-size: 12px; }
+    
     .tabs { display: flex; gap: 5px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
     .tab-btn { padding: 10px 15px; border: none; border-radius: 6px; background: #e5e7eb; cursor: pointer; font-weight: 600; white-space: nowrap; }
     .tab-btn.active { background: var(--primary); color: white; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
     .message { padding: 12px; border-radius: 8px; margin: 10px 0; text-align: center; display: none; font-weight: 600; }
-    .success { background: #d1fae5; color: #065f46; }
-    .error { background: #fee2e2; color: #991b1b; }
     
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
     .stat-card { padding: 15px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; text-align: center; }
@@ -39,11 +39,14 @@
     .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
     .badge-absent { background: var(--danger); color: white; }
     .badge-sick { background: var(--purple); color: white; }
-    .badge-present { background: var(--success); color: white; }
 
     .session-indicator { padding: 1px 4px; border-radius: 3px; font-weight: bold; font-size: 10px; margin-right: 2px; color: white; }
-    .sess-m { background: #2563eb; } /* Morning Blue */
-    .sess-b { background: #f97316; } /* Break Orange */
+    .sess-m { background: #2563eb; } 
+    .sess-b { background: #f97316; }
+
+    .quick-filters { display: flex; gap: 5px; overflow-x: auto; padding: 5px 0; margin-bottom: 10px; }
+    .q-btn { padding: 6px 10px; border-radius: 20px; border: 1px solid #cbd5e1; background: white; font-size: 11px; white-space: nowrap; cursor: pointer; }
+    .q-btn.active { background: #1e293b; color: white; border-color: #1e293b; }
 
     .att-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
     .att-btn { padding: 12px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: center;}
@@ -128,11 +131,25 @@
       <div id="listTab" class="tab-content">
         <div style="margin-bottom:15px">
           <label>View Mode</label>
-          <select id="recordMode" onchange="renderRecords()">
+          <select id="recordMode" onchange="resetFilters(); renderRecords()">
             <option value="students">Student List (Full)</option>
             <option value="absent">Absent/Sick History</option>
             <option value="summary">Weekly/Monthly Summary</option>
           </select>
+        </div>
+
+        <div id="quickFilterContainer" style="display:none">
+          <label style="font-size: 11px; margin-bottom: 2px;">Yesterday's Absentees:</label>
+          <div class="quick-filters" id="gradeQuickFilters">
+             <button class="q-btn" onclick="applyQuickFilter('1aad')">G1</button>
+             <button class="q-btn" onclick="applyQuickFilter('2aad')">G2</button>
+             <button class="q-btn" onclick="applyQuickFilter('3aad')">G3</button>
+             <button class="q-btn" onclick="applyQuickFilter('4aad')">G4</button>
+             <button class="q-btn" onclick="applyQuickFilter('5aad')">G5</button>
+             <button class="q-btn" onclick="applyQuickFilter('6aad')">G6</button>
+             <button class="q-btn" onclick="applyQuickFilter('7aad')">G7</button>
+             <button class="q-btn" onclick="applyQuickFilter('8aad')">G8</button>
+          </div>
         </div>
 
         <div id="filterSection" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px">
@@ -150,6 +167,8 @@
               <option value="After Break">After Break</option>
             </select>
         </div>
+
+        <button class="btn btn-outline" style="margin-bottom: 10px; width: auto; font-size: 11px;" onclick="exportCSV()">📥 Download CSV</button>
 
         <div class="table-container">
           <table id="recordTable">
@@ -180,7 +199,8 @@
         <label>Grade</label>
         <select id="rClass">
           <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option><option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
-          <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option><option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
+          <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
+          <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
         </select>
         <label>Status</label>
         <select id="rStatus"><option value="active">Active</option><option value="dropout">Dropout</option><option value="inactive">Inactive</option></select>
@@ -212,6 +232,9 @@
   <script>
     const API = 'https://script.google.com/macros/s/AKfycbzbiyfL3xYKgUSAtpRUS52mbU7u6ikqyv4SZeHjTTLVlw-tAci9vifHwYHIiRsdRT2UGw/exec';
     let user = null, students = [], attLogs = [], attSummary = {}, currentAttStatus = 'present';
+    
+    // FAST LOOKUP CACHE
+    let studentCache = {}; // key: "class_roll", value: Name
 
     function msg(text, type='success') {
       const el = user ? document.getElementById('appMsg') : document.getElementById('loginMsg');
@@ -257,7 +280,14 @@
         call('getAttendanceLogs', {}, !manual),
         call('getAttendanceSummary', {}, true)
       ]);
-      if(Array.isArray(sData)) students = sData;
+      if(Array.isArray(sData)) {
+          students = sData;
+          // Rebuild Fast Lookup Cache
+          studentCache = {};
+          students.forEach(s => {
+              studentCache[`${s.Class}_${s.ID}`] = s.Name;
+          });
+      }
       if(Array.isArray(lData)) attLogs = lData;
       if(sumData && !sumData.error) attSummary = sumData;
       updateStats();
@@ -272,6 +302,25 @@
       document.getElementById('statInactive').textContent = students.filter(s => String(s.Status).toLowerCase() === 'inactive').length;
     }
 
+    function resetFilters() {
+      document.getElementById('listFilter').value = 'all';
+      document.getElementById('dateFilter').value = '';
+      document.getElementById('sessionFilter').value = 'all';
+      document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
+    }
+
+    function applyQuickFilter(grade) {
+      document.getElementById('recordMode').value = 'absent';
+      document.getElementById('listFilter').value = grade;
+      const yest = new Date();
+      yest.setDate(yest.getDate() - 1);
+      document.getElementById('dateFilter').value = yest.toISOString().split('T')[0];
+      document.querySelectorAll('.q-btn').forEach(b => {
+        b.classList.toggle('active', b.textContent.includes(grade.replace('aad','')));
+      });
+      renderRecords();
+    }
+
     function renderRecords() {
       const mode = document.getElementById('recordMode').value;
       const grade = document.getElementById('listFilter').value;
@@ -281,10 +330,13 @@
       const body = document.getElementById('recordBody');
       const dateInp = document.getElementById('dateFilter');
       const sessInp = document.getElementById('sessionFilter');
+      const quickBox = document.getElementById('quickFilterContainer');
+      
       body.innerHTML = '';
       const isHistory = (mode === 'absent');
       dateInp.style.display = isHistory ? 'block' : 'none';
       sessInp.style.display = isHistory ? 'block' : 'none';
+      quickBox.style.display = isHistory ? 'block' : 'none';
 
       if (mode === 'students') {
         head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Grade</th><th>Status</th></tr>';
@@ -309,7 +361,7 @@
              grouped[key] = { date: logDate, name: l.name, class: l.class, sessions: [], statuses: new Set() };
            }
            const code = (l.session === 'Morning') ? 'M' : (l.session === 'After Break' ? 'B' : '?');
-           grouped[key].sessions.push(code);
+           if(!grouped[key].sessions.includes(code)) grouped[key].sessions.push(code);
            grouped[key].statuses.add(l.status);
         });
 
@@ -326,6 +378,23 @@
           body.innerHTML += `<tr><td>${s.ID}</td><td>${s.Name}</td><td>${stats.w}d</td><td>${stats.m}d</td></tr>`;
         });
       }
+    }
+
+    function exportCSV() {
+      const mode = document.getElementById('recordMode').value;
+      let rows = [];
+      const table = document.getElementById('recordTable');
+      const header = Array.from(table.querySelectorAll('th')).map(th => th.innerText);
+      rows.push(header.join(','));
+      Array.from(table.querySelectorAll('tbody tr')).forEach(tr => {
+        const data = Array.from(tr.querySelectorAll('td')).map(td => `"${td.innerText.replace(/\n/g, ' ')}"` );
+        rows.push(data.join(','));
+      });
+      const csvContent = "data:text/csv;charset=utf-8," + rows.join("\n");
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csvContent));
+      link.setAttribute("download", `SoolSchool_${mode}.csv`);
+      link.click();
     }
 
     window.showTab = (t) => {
@@ -353,14 +422,23 @@
       }
     };
 
+    // OPTIMIZED FAST LOOKUP
     window.lookupStudent = (type) => {
-      const roll = document.getElementById(type === 'att' ? 'rollId' : 'fRoll').value;
-      const cls = document.getElementById(type === 'att' ? 'attClass' : 'fClass').value;
-      const display = document.getElementById(type === 'att' ? 'rollName' : 'fName');
+      const isAtt = (type === 'att');
+      const roll = document.getElementById(isAtt ? 'rollId' : 'fRoll').value;
+      const cls = document.getElementById(isAtt ? 'attClass' : 'fClass').value;
+      const display = document.getElementById(isAtt ? 'rollName' : 'fName');
+      
       if(!roll || !cls) { display.value = ""; return; }
-      const s = students.find(x => String(x.ID) === roll && String(x.Class) === cls);
-      if(s) display.value = s.Name;
-      else { display.value = ""; display.placeholder = "Not found"; }
+      
+      // Direct Map Access (O(1) Speed)
+      const name = studentCache[`${cls}_${roll}`];
+      if(name) {
+          display.value = name;
+      } else {
+          display.value = "";
+          display.placeholder = "Not found";
+      }
     };
 
     window.setAttStatus = (btn, s) => {
