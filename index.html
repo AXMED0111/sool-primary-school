@@ -41,6 +41,10 @@
     .badge-sick { background: var(--purple); color: white; }
     .badge-present { background: var(--success); color: white; }
 
+    .session-indicator { padding: 1px 4px; border-radius: 3px; font-weight: bold; font-size: 10px; margin-right: 2px; color: white; }
+    .sess-m { background: #2563eb; } /* Morning Blue */
+    .sess-b { background: #f97316; } /* Break Orange */
+
     .att-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
     .att-btn { padding: 12px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: center;}
     .att-btn.present.active { background: var(--success); color: white; }
@@ -77,7 +81,6 @@
         <small id="roleDisplay" style="color:#666; text-transform:uppercase"></small>
       </div>
 
-      <!-- Navigation Tabs (Reordered) -->
       <div class="tabs" id="nav">
         <button class="tab-btn active" onclick="showTab('att')">Attendance</button>
         <button class="tab-btn" onclick="showTab('list')">Records</button>
@@ -86,14 +89,13 @@
 
       <div id="appMsg" class="message"></div>
 
-      <!-- Attendance Tab (Default) -->
       <div id="attTab" class="tab-content active">
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
           <div><label>Date</label><input type="date" id="attDate"></div>
           <div><label>Session</label>
             <select id="attSession">
-              <option value="Morning">Morning</option>
-              <option value="After Break">After Break</option>
+              <option value="Morning">Morning (M)</option>
+              <option value="After Break">After Break (B)</option>
             </select>
           </div>
         </div>
@@ -106,7 +108,6 @@
           <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
         </select>
         
-        <!-- Moved list above the button -->
         <div id="previewList" style="display:none; background:#f9fafb; padding:10px; border-radius:8px; margin: 15px 0; max-height:150px; overflow-y:auto; border:1px solid #eee"></div>
         <button id="batchBtn" class="btn btn-success" style="display:none; margin-bottom:15px" onclick="markAll()">Mark Class Present</button>
         
@@ -124,7 +125,6 @@
         <button class="btn btn-primary" onclick="saveOne()">Save Entry</button>
       </div>
 
-      <!-- Merged Records Tab -->
       <div id="listTab" class="tab-content">
         <div style="margin-bottom:15px">
           <label>View Mode</label>
@@ -143,7 +143,6 @@
               <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
               <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
             </select>
-            <!-- New Filters for History Mode -->
             <input type="date" id="dateFilter" onchange="renderRecords()" style="display:none; flex:1">
             <select id="sessionFilter" onchange="renderRecords()" style="display:none; flex:1">
               <option value="all">All Sessions</option>
@@ -160,7 +159,6 @@
         </div>
       </div>
 
-      <!-- Stats Tab (Moved to Last) -->
       <div id="statsTab" class="tab-content">
         <div class="stats-grid">
           <div class="stat-card"><div class="stat-val" id="statTotal">0</div><div class="stat-label">Total Students</div></div>
@@ -171,7 +169,6 @@
         <button class="btn btn-primary" onclick="refreshData(true)">🔄 Sync All Records</button>
       </div>
 
-      <!-- Registration Tab (Admin Only) -->
       <div id="regTab" class="tab-content">
         <h3>Registration</h3>
         <label>Full Name</label><input type="text" id="rName">
@@ -183,15 +180,13 @@
         <label>Grade</label>
         <select id="rClass">
           <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option><option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
-          <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
-          <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
+          <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option><option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
         </select>
         <label>Status</label>
         <select id="rStatus"><option value="active">Active</option><option value="dropout">Dropout</option><option value="inactive">Inactive</option></select>
         <button class="btn btn-primary" onclick="doRegister()">Complete Registration</button>
       </div>
 
-      <!-- Fees Tab (Admin Only) -->
       <div id="feeTab" class="tab-content">
         <h3>Fees</h3>
         <label>Grade</label>
@@ -247,14 +242,10 @@
         document.getElementById('greet').textContent = `Hi, ${user.username}`;
         document.getElementById('roleDisplay').textContent = user.role;
         document.getElementById('attDate').valueAsDate = new Date();
-        
-        // Setup Admin Tabs
         if(user.role === 'admin') {
           document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('reg')">Reg</button>`;
           document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('fee')">Fees</button>`;
         }
-        
-        // Force show Attendance tab first
         showTab('att');
         refreshData();
       } else msg(res.message || "Login Failed", "error");
@@ -269,7 +260,6 @@
       if(Array.isArray(sData)) students = sData;
       if(Array.isArray(lData)) attLogs = lData;
       if(sumData && !sumData.error) attSummary = sumData;
-      
       updateStats();
       renderRecords();
       if(manual) msg("Refreshed");
@@ -287,15 +277,11 @@
       const grade = document.getElementById('listFilter').value;
       const dateVal = document.getElementById('dateFilter').value;
       const sessionVal = document.getElementById('sessionFilter').value;
-      
       const head = document.getElementById('recordHead');
       const body = document.getElementById('recordBody');
       const dateInp = document.getElementById('dateFilter');
       const sessInp = document.getElementById('sessionFilter');
-
       body.innerHTML = '';
-      
-      // Toggle Filter Visibility
       const isHistory = (mode === 'absent');
       dateInp.style.display = isHistory ? 'block' : 'none';
       sessInp.style.display = isHistory ? 'block' : 'none';
@@ -307,40 +293,30 @@
         });
       } 
       else if (mode === 'absent') {
-        head.innerHTML = '<tr><th>Date</th><th>Name</th><th>Info</th></tr>';
-        
-        // Group by Date + Roll to prevent duplicate name rows
+        head.innerHTML = '<tr><th>Date</th><th>Name</th><th>Sessions / Status</th></tr>';
         const grouped = {};
-        
         attLogs.filter(l => {
           const isAbs = l.status === 'absent' || l.status === 'sick';
           const isGrade = grade === 'all' || l.class === grade;
           const logDate = new Date(l.date).toISOString().split('T')[0];
           const isDate = !dateVal || logDate === dateVal;
-          // Filter session before grouping if specific session is requested
           const isSession = sessionVal === 'all' || l.session === sessionVal;
           return isAbs && isGrade && isDate && isSession;
         }).forEach(l => {
            const logDate = new Date(l.date).toLocaleDateString();
            const key = `${l.roll}_${logDate}`;
            if(!grouped[key]) {
-             grouped[key] = {
-               date: logDate,
-               name: l.name,
-               class: l.class,
-               sessions: []
-             };
+             grouped[key] = { date: logDate, name: l.name, class: l.class, sessions: [], statuses: new Set() };
            }
-           // Use M for Morning, B for After Break
            const code = (l.session === 'Morning') ? 'M' : (l.session === 'After Break' ? 'B' : '?');
-           grouped[key].sessions.push({ code: code, status: l.status });
+           grouped[key].sessions.push(code);
+           grouped[key].statuses.add(l.status);
         });
 
-        // Render the grouped data
         Object.values(grouped).forEach(g => {
-           // Create the info string e.g. "M: absent B: sick"
-           const statusHtml = g.sessions.map(s => `<b>${s.code}:</b> <span class="badge badge-${s.status}">${s.status}</span>`).join(' ');
-           body.innerHTML += `<tr><td>${g.date}</td><td>${g.name}</td><td><small>${g.class}<br>${statusHtml}</small></td></tr>`;
+           const sessHtml = g.sessions.sort().map(s => `<span class="session-indicator sess-${s.toLowerCase()}">${s}</span>`).join('');
+           const statusText = Array.from(g.statuses).join(' / ');
+           body.innerHTML += `<tr><td>${g.date}</td><td>${g.name}</td><td><small>${g.class}<br>${sessHtml} <span class="badge badge-${Array.from(g.statuses)[0]}">${statusText}</span></small></td></tr>`;
         });
       }
       else if (mode === 'summary') {
@@ -355,11 +331,10 @@
     window.showTab = (t) => {
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(t+'Tab').classList.add('active');
-      
-      const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.onclick.toString().includes(t));
+      const content = document.getElementById(t+'Tab');
+      if(content) content.classList.add('active');
+      const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(`'${t}'`));
       if(btn) btn.classList.add('active');
-      
       if(t === 'list') renderRecords();
     };
 
@@ -369,9 +344,8 @@
       lookupStudent(type);
       if(type === 'att') {
          const box = document.getElementById('previewList');
-         if(!cls) { 
-           box.style.display = 'none'; 
-         } else {
+         if(!cls) { box.style.display = 'none'; } 
+         else {
            const list = students.filter(s => String(s.Class) === String(cls) && String(s.Status).toLowerCase() === 'active');
            box.innerHTML = list.map(s => `<div style="padding:3px 0; font-size:11px">#${s.ID} ${s.Name}</div>`).join('') || "No active students";
            box.style.display = 'block';
