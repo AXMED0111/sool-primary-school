@@ -32,21 +32,24 @@
     .stat-val { font-size: 24px; font-weight: 800; color: var(--primary); }
     .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; }
 
-    .student-table-container { overflow-x: auto; margin-top: 10px; border: 1px solid #e5e7eb; border-radius: 8px; max-height: 350px; }
+    .table-container { overflow-x: auto; margin-top: 10px; border: 1px solid #e5e7eb; border-radius: 8px; max-height: 400px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th { background: #f9fafb; padding: 10px; text-align: left; border-bottom: 2px solid #e5e7eb; position: sticky; top: 0; }
     td { padding: 10px; border-bottom: 1px solid #f3f4f6; }
     .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+    .badge-absent { background: #fee2e2; color: #991b1b; }
+    .badge-sick { background: #f3e8ff; color: #6b21a8; }
     .badge-active { background: #d1fae5; color: #065f46; }
-    .badge-inactive { background: #fef3c7; color: #92400e; }
-    .badge-dropout { background: #fee2e2; color: #991b1b; }
+    
+    .summary-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+    .sum-warn { color: var(--danger); font-weight: bold; }
 
     .att-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-    .att-btn { padding: 12px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: center; transition: 0.2s;}
-    .att-btn.present.active { background: var(--success); color: white; border-color: var(--success); }
-    .att-btn.absent.active { background: var(--danger); color: white; border-color: var(--danger); }
-    .att-btn.late.active { background: var(--warning); color: white; border-color: var(--warning); }
-    .att-btn.sick.active { background: var(--purple); color: white; border-color: var(--purple); }
+    .att-btn { padding: 12px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: center;}
+    .att-btn.present.active { background: var(--success); color: white; }
+    .att-btn.absent.active { background: var(--danger); color: white; }
+    .att-btn.late.active { background: var(--warning); color: white; }
+    .att-btn.sick.active { background: var(--purple); color: white; }
     
     .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 1000; align-items: center; justify-content: center;}
     body.loading .loading-overlay { display: flex; }
@@ -79,8 +82,8 @@
 
       <div class="tabs" id="nav">
         <button class="tab-btn active" onclick="showTab('att')">Attendance</button>
-        <button class="tab-btn" onclick="showTab('stats')">Stats</button>
-        <button class="tab-btn" onclick="showTab('list')">Records</button>
+        <button class="tab-btn" onclick="showTab('abs')">Absentees</button>
+        <button class="tab-btn" onclick="showTab('list')">Students</button>
       </div>
 
       <div id="appMsg" class="message"></div>
@@ -97,7 +100,7 @@
           </div>
         </div>
         <label>Grade Level</label>
-        <select id="attClass" onchange="handleClassChange()">
+        <select id="attClass" onchange="handleClassChange('att')">
           <option value="">-- Select --</option>
           <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
           <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
@@ -107,9 +110,9 @@
         <div id="previewList" style="display:none; background:#f9fafb; padding:10px; border-radius:8px; margin-bottom:10px; max-height:100px; overflow-y:auto; border:1px solid #eee"></div>
         <button id="batchBtn" class="btn btn-success" style="display:none; margin-bottom:15px" onclick="markAll()">Mark All Present</button>
         <hr>
-        <label style="margin-top:15px">Individual Roll #</label>
-        <input type="number" id="rollId" placeholder="Enter Roll #" oninput="lookupStudent()">
-        <input type="text" id="rollName" readonly style="background:#f3f4f6" placeholder="Name will appear after Grade & Roll #">
+        <label style="margin-top:15px">Roll #</label>
+        <input type="number" id="rollId" placeholder="Enter Roll #" oninput="lookupStudent('att')">
+        <input type="text" id="rollName" readonly style="background:#f3f4f6" placeholder="Name after Class & Roll #">
         
         <div class="att-btn-grid">
           <div class="att-btn present active" onclick="setAttStatus(this, 'present')">Present</div>
@@ -120,46 +123,60 @@
         <button class="btn btn-primary" onclick="saveOne()">Save Entry</button>
       </div>
 
-      <!-- Stats Tab -->
-      <div id="statsTab" class="tab-content">
-        <h3>Overview</h3>
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-val" id="statTotal">0</div><div class="stat-label">Total</div></div>
-          <div class="stat-card"><div class="stat-val" id="statActive">0</div><div class="stat-label">Active</div></div>
-          <div class="stat-card"><div class="stat-val" id="statDropout" style="color:var(--danger)">0</div><div class="stat-label">Dropout</div></div>
-          <div class="stat-card"><div class="stat-val" id="statInactive" style="color:var(--warning)">0</div><div class="stat-label">Inactive</div></div>
-        </div>
-        <button class="btn btn-primary" onclick="refreshData(true)">🔄 Force Sync</button>
-      </div>
-
-      <!-- List Tab -->
-      <div id="listTab" class="tab-content">
-        <h3>Student List</h3>
-        <div style="display:flex; gap:10px">
-            <select id="listFilter" onchange="renderStudentTable()" style="margin-bottom:10px">
-              <option value="all">All Students</option>
-              <option value="active">Active</option>
-              <option value="dropout">Dropouts</option>
-            </select>
-            <button class="btn btn-warning" onclick="exportCSV()" style="margin-bottom:10px; padding: 10px; height: 46px;">📥 CSV</button>
-        </div>
-        <div class="student-table-container">
-          <table id="studentTable">
-            <thead><tr><th>ID</th><th>Name</th><th>Class</th><th>Status</th></tr></thead>
+      <!-- Absentees Tab -->
+      <div id="absTab" class="tab-content">
+        <h3>Last Session: Absentees & Sick</h3>
+        <p id="lastSessionInfo" style="font-size: 11px; color: #666; margin-bottom: 10px;"></p>
+        <div class="table-container">
+          <table id="absenteeTable">
+            <thead><tr><th>Roll</th><th>Name</th><th>Class</th><th>Status</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
+        <button class="btn btn-primary" onclick="loadAbsentees()" style="margin-top: 15px;">Refresh List</button>
       </div>
 
-      <!-- Registration Tab -->
+      <!-- Student Records Tab (with Summary) -->
+      <div id="listTab" class="tab-content">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+          <h3 style="margin:0">Student Summary</h3>
+          <button class="btn-warning" onclick="exportCSV()" style="padding:5px 10px; border-radius:6px; font-size:11px; cursor:pointer">CSV Export</button>
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:10px">
+            <select id="listFilter" onchange="renderStudentTable()">
+              <option value="all">All Grades</option>
+              <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option><option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
+              <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option><option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
+            </select>
+            <select id="statusFilter" onchange="renderStudentTable()">
+              <option value="active">Active Only</option>
+              <option value="all">Include Dropouts</option>
+            </select>
+        </div>
+        <div class="table-container">
+          <table id="studentTable">
+            <thead>
+              <tr>
+                <th>Roll</th>
+                <th>Name</th>
+                <th>Week (Abs/Sick)</th>
+                <th>Month (Abs/Sick)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p style="font-size:10px; color:#666; margin-top:10px">* Absent/Sick count resets weekly and monthly.</p>
+      </div>
+
+      <!-- Admin Tabs (Reg/Fee) -->
       <div id="regTab" class="tab-content">
         <h3>Registration</h3>
         <label>Full Name</label><input type="text" id="rName">
         <label>Mother's Name</label><input type="text" id="rMother">
         <label>DOB</label><input type="date" id="rDob">
-        <label>Place of Birth</label><input type="text" id="rPob">
+        <label>Transfer From</label><input type="text" id="rTransfer" placeholder="Previous School">
         <label>Phone</label><input type="text" id="rPhone">
-        <label>Transfer From</label><input type="text" id="rTransfer" placeholder="Previous School Name">
         <label>Grade</label>
         <select id="rClass">
           <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option><option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
@@ -170,28 +187,20 @@
         <button class="btn btn-primary" onclick="doRegister()">Register Student</button>
       </div>
 
-      <!-- Fees Tab -->
       <div id="feeTab" class="tab-content">
         <h3>Fees</h3>
-        <div style="background:#f1f5f9; padding:15px; border-radius:12px; margin-bottom:20px">
-          <label>Grade Level</label>
-          <select id="fClass" onchange="lookupFee()">
-            <option value="">-- Select --</option>
-            <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
-            <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
-            <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
-            <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
-          </select>
-          <label>Roll #</label><input type="number" id="fRoll" oninput="lookupFee()" placeholder="Enter Roll #">
-          <input type="text" id="fName" readonly style="background:#eee" placeholder="Name will appear after Grade & Roll #">
-          <label>Amount ($)</label><input type="number" id="fAmt">
-          <label>Fee Session</label>
-          <select id="fSession">
-            <option value="Term 1">Term 1</option>
-            <option value="Term 2">Term 2</option>
-          </select>
-          <button class="btn btn-success" onclick="doFee()">Save Payment</button>
-        </div>
+        <label>Grade Level</label>
+        <select id="fClass" onchange="lookupStudent('fee')">
+          <option value="">-- Select --</option>
+          <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option><option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
+          <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option><option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
+        </select>
+        <label>Roll #</label><input type="number" id="fRoll" oninput="lookupStudent('fee')">
+        <input type="text" id="fName" readonly style="background:#eee" placeholder="Name found via Grade & Roll">
+        <label>Amount ($)</label><input type="number" id="fAmt">
+        <label>Term</label>
+        <select id="fSession"><option value="Term 1">Term 1</option><option value="Term 2">Term 2</option></select>
+        <button class="btn btn-success" onclick="doFee()">Save Payment</button>
       </div>
 
       <button class="btn btn-danger" style="margin-top:20px; font-size:12px; border:1px solid #fee2e2; background:none; color:var(--danger)" onclick="location.reload()">Logout</button>
@@ -200,7 +209,7 @@
 
   <script>
     const API = 'https://script.google.com/macros/s/AKfycbzookQIZXtRTn0gCPMESJY-2SMZwHGpfaXwuxxYqac9rf59LVROymfDQ31UtD4vzUDiFQ/exec';
-    let user = null, students = [], currentAttStatus = 'present';
+    let user = null, students = [], attSummary = {}, currentAttStatus = 'present';
 
     function msg(text, type='success') {
       const el = user ? document.getElementById('appMsg') : document.getElementById('loginMsg');
@@ -217,7 +226,7 @@
         return res;
       } catch(e) {
         if(!quiet) document.body.classList.remove('loading');
-        msg("Sync Failed", "error"); return { error: true };
+        msg("Sync Error", "error"); return { error: true };
       }
     }
 
@@ -240,32 +249,62 @@
     };
 
     async function refreshData(manual=false) {
-      const sData = await call('getStudents', {}, !manual);
-      if(Array.isArray(sData)) { students = sData; updateStats(); renderStudentTable(); }
+      const [sData, sumData] = await Promise.all([
+        call('getStudents', {}, !manual),
+        call('getAttendanceSummary', {}, true)
+      ]);
+      if(Array.isArray(sData)) students = sData;
+      if(sumData && !sumData.error) attSummary = sumData;
+      renderStudentTable();
+      loadAbsentees();
       if(manual) msg("Records Refreshed");
     }
 
-    function updateStats() {
-      document.getElementById('statTotal').textContent = students.length;
-      document.getElementById('statActive').textContent = students.filter(s => String(s.Status).toLowerCase() === 'active').length;
-      document.getElementById('statDropout').textContent = students.filter(s => String(s.Status).toLowerCase() === 'dropout').length;
-      document.getElementById('statInactive').textContent = students.filter(s => String(s.Status).toLowerCase() === 'inactive').length;
+    async function loadAbsentees() {
+      const data = await call('getRecentAbsentees', {}, true);
+      const tbody = document.querySelector('#absenteeTable tbody');
+      tbody.innerHTML = '';
+      if(data.length > 0) {
+        document.getElementById('lastSessionInfo').textContent = `Date: ${data[0].session}`;
+        data.forEach(a => {
+          tbody.innerHTML += `<tr><td>${a.roll}</td><td>${a.name}</td><td>${a.class}</td><td><span class="badge badge-${a.status}">${a.status}</span></td></tr>`;
+        });
+      } else {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center">No absentees reported in last session</td></tr>';
+      }
     }
 
     function renderStudentTable() {
-      const filter = document.getElementById('listFilter').value;
+      const gradeFilter = document.getElementById('listFilter').value;
+      const statusFilter = document.getElementById('statusFilter').value;
       const tbody = document.querySelector('#studentTable tbody');
       tbody.innerHTML = '';
-      students.filter(s => filter === 'all' || String(s.Status).toLowerCase() === filter).forEach(s => {
-        tbody.innerHTML += `<tr><td>${s.ID}</td><td>${s.Name}</td><td>${s.Class}</td><td><span class="badge badge-${String(s.Status).toLowerCase()}">${s.Status}</span></td></tr>`;
-      });
+      
+      students
+        .filter(s => (gradeFilter === 'all' || s.Class === gradeFilter) && (statusFilter === 'all' || String(s.Status).toLowerCase() === 'active'))
+        .forEach(s => {
+          const stats = attSummary[String(s.ID)] || { w: 0, m: 0 };
+          const weekClass = stats.w > 2 ? 'sum-warn' : '';
+          const monthClass = stats.m > 5 ? 'sum-warn' : '';
+
+          tbody.innerHTML += `
+            <tr>
+              <td>${s.ID}</td>
+              <td>${s.Name}<br><small style="color:#888">${s.Class}</small></td>
+              <td class="${weekClass}">${stats.w} days</td>
+              <td class="${monthClass}">${stats.m} days</td>
+            </tr>`;
+        });
     }
 
     function exportCSV() {
-      let csv = "ID,Name,Mother,Class,Status,TransferFrom\n";
-      students.forEach(s => csv += `${s.ID},"${s.Name}","${s.MotherName||''}",${s.Class},${s.Status},"${s.TransferFrom||''}"\n`);
+      let csv = "Roll,Name,Class,Status,Weekly_Absence,Monthly_Absence\n";
+      students.forEach(s => {
+        const stats = attSummary[String(s.ID)] || { w: 0, m: 0 };
+        csv += `${s.ID},"${s.Name}",${s.Class},${s.Status},${stats.w},${stats.m}\n`;
+      });
       const blob = new Blob([csv], { type: 'text/csv' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'students_list.csv'; a.click();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'attendance_summary.csv'; a.click();
     }
 
     window.showTab = (t) => {
@@ -273,11 +312,12 @@
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(t+'Tab').classList.add('active');
       event.target.classList.add('active');
+      if(t === 'list') refreshData();
     };
 
-    window.handleClassChange = () => {
-        filterClassList();
-        lookupStudent(); 
+    window.handleClassChange = (type) => {
+        if(type === 'att') filterClassList();
+        lookupStudent(type); 
     };
 
     window.filterClassList = () => {
@@ -290,53 +330,20 @@
       box.style.display = 'block'; btn.style.display = list.length > 0 ? 'block' : 'none';
     };
 
-    window.lookupStudent = () => {
-      const roll = document.getElementById('rollId').value;
-      const cls = document.getElementById('attClass').value;
-      const display = document.getElementById('rollName');
+    window.lookupStudent = (type) => {
+      const rollField = type === 'att' ? 'rollId' : 'fRoll';
+      const classField = type === 'att' ? 'attClass' : 'fClass';
+      const displayField = type === 'att' ? 'rollName' : 'fName';
+      
+      const roll = document.getElementById(rollField).value;
+      const cls = document.getElementById(classField).value;
+      const display = document.getElementById(displayField);
 
-      if(!roll || !cls) {
-          display.value = "";
-          display.placeholder = "Name will appear after Grade & Roll #";
-          return;
-      }
+      if(!roll || !cls) { display.value = ""; return; }
 
-      const s = students.find(x => 
-        String(x.ID) === roll && 
-        String(x.Class) === cls && 
-        String(x.Status).toLowerCase() === 'active'
-      );
-
-      if(s) {
-          display.value = s.Name;
-      } else {
-          display.value = "";
-          display.placeholder = "Student not found in this class";
-      }
-    };
-
-    window.lookupFee = () => {
-      const roll = document.getElementById('fRoll').value;
-      const cls = document.getElementById('fClass').value;
-      const display = document.getElementById('fName');
-
-      if(!roll || !cls) {
-          display.value = "";
-          display.placeholder = "Name will appear after Grade & Roll #";
-          return;
-      }
-
-      const s = students.find(x => 
-        String(x.ID) === roll && 
-        String(x.Class) === cls
-      );
-
-      if(s) {
-          display.value = s.Name;
-      } else {
-          display.value = "";
-          display.placeholder = "Student not found in this class";
-      }
+      const s = students.find(x => String(x.ID) === roll && String(x.Class) === cls);
+      if(s) display.value = s.Name;
+      else { display.value = ""; display.placeholder = "Not found in this Grade"; }
     };
 
     window.setAttStatus = (btn, s) => {
@@ -350,18 +357,14 @@
       const cls = document.getElementById('attClass').value;
       if(!roll || !cls || !name) return msg("Class and Roll required", "error");
       const res = await call('recordAttendance', {
-        date: document.getElementById('attDate').value, 
-        session: document.getElementById('attSession').value,
-        class: cls, 
-        rollNumber: roll, 
-        studentName: name, 
-        status: currentAttStatus, 
-        recordedBy: user.username
+        date: document.getElementById('attDate').value, session: document.getElementById('attSession').value,
+        class: cls, rollNumber: roll, studentName: name, status: currentAttStatus, recordedBy: user.username
       });
       if(res.success) { 
-          msg("Saved"); 
-          document.getElementById('rollId').value = ""; 
-          document.getElementById('rollName').value = "";
+        msg("Saved"); 
+        document.getElementById('rollId').value = ""; 
+        document.getElementById('rollName').value = ""; 
+        refreshData(); 
       }
     };
 
@@ -378,37 +381,17 @@
       if(!name) return msg("Name required", "error");
       const res = await call('addStudent', {
         name, motherName: document.getElementById('rMother').value, dob: document.getElementById('rDob').value,
-        pob: document.getElementById('rPob').value, phone: document.getElementById('rPhone').value,
-        transferFrom: document.getElementById('rTransfer').value,
+        transferFrom: document.getElementById('rTransfer').value, phone: document.getElementById('rPhone').value,
         class: document.getElementById('rClass').value, status: document.getElementById('rStatus').value
       });
-      if(res.success) { 
-          msg("Registered ID: "+res.id); 
-          document.getElementById('rName').value = "";
-          document.getElementById('rMother').value = "";
-          document.getElementById('rPhone').value = "";
-          document.getElementById('rTransfer').value = "";
-          refreshData(true); 
-      }
+      if(res.success) { msg("Registered ID: "+res.id); document.getElementById('rName').value = ""; refreshData(true); }
     };
 
     window.doFee = async () => {
-      const roll = document.getElementById('fRoll').value;
-      const amt = document.getElementById('fAmt').value;
-      const name = document.getElementById('fName').value;
-      const cls = document.getElementById('fClass').value;
-      
+      const roll = document.getElementById('fRoll').value, amt = document.getElementById('fAmt').value, name = document.getElementById('fName').value, cls = document.getElementById('fClass').value;
       if(!roll || !amt || !cls || !name) return msg("Fill all fields", "error");
-      const res = await call('processFee', {
-        student: name, roll, amount: amt, session: document.getElementById('fSession').value, 
-        recordedBy: user.username, class: cls
-      });
-      if(res.success) { 
-        msg("Payment Saved"); 
-        document.getElementById('fRoll').value = ""; 
-        document.getElementById('fAmt').value = ""; 
-        document.getElementById('fName').value = ""; 
-      }
+      const res = await call('processFee', { student: name, roll, amount: amt, session: document.getElementById('fSession').value, recordedBy: user.username, class: cls });
+      if(res.success) { msg("Payment Saved"); document.getElementById('fRoll').value = ""; document.getElementById('fAmt').value = ""; document.getElementById('fName').value = ""; }
     };
   </script>
 </body>
