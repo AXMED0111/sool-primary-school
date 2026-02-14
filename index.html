@@ -17,7 +17,6 @@
     .btn-primary { background: var(--primary); color: white; }
     .btn-success { background: var(--success); color: white; }
     .btn-danger { background: var(--danger); color: white; }
-    .btn-warning { background: var(--warning); color: white; }
     .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 8px; font-size: 12px; }
     
     .tabs { display: flex; gap: 5px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
@@ -42,14 +41,16 @@
     .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
     .badge-absent { background: var(--danger); color: white; }
     .badge-sick { background: var(--purple); color: white; }
+    .badge-late { background: var(--warning); color: white; }
+    .badge-present { background: var(--success); color: white; }
     .badge-active { background: var(--success); color: white; }
     .badge-dropout { background: #64748b; color: white; }
+    .badge-inactive { background: var(--warning); color: white; }
 
     .session-indicator { padding: 1px 4px; border-radius: 3px; font-weight: bold; font-size: 10px; margin-right: 2px; color: white; }
     .sess-m { background: #2563eb; } 
     .sess-b { background: #f97316; }
 
-    /* Modal Styling */
     .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px; }
     .modal-content { background: white; border-radius: 16px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto; padding: 25px; position: relative; }
     .close-modal { position: absolute; right: 20px; top: 20px; font-size: 24px; cursor: pointer; color: #64748b; }
@@ -81,7 +82,7 @@
       <div id="modalMeta" style="margin-bottom: 15px;"></div>
       <hr>
       <div style="margin-top: 15px;">
-        <h4 style="margin-bottom: 10px; color: #4b5563;">Attendance History</h4>
+        <h4 style="margin-bottom: 10px; color: #4b5563;">Attendance History (Absences/Sick)</h4>
         <div id="modalHistory" style="font-size: 13px;"></div>
       </div>
     </div>
@@ -116,6 +117,7 @@
 
       <div id="appMsg" class="message"></div>
 
+      <!-- Attendance Tab -->
       <div id="attTab" class="tab-content active">
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
           <div><label>Date</label><input type="date" id="attDate"></div>
@@ -152,6 +154,7 @@
         <button class="btn btn-primary" onclick="saveOne()">Save Entry</button>
       </div>
 
+      <!-- Records Tab -->
       <div id="listTab" class="tab-content">
         <div style="margin-bottom:15px">
           <label>View Mode</label>
@@ -163,7 +166,7 @@
         </div>
 
         <div id="quickFilterContainer">
-          <label style="font-size: 11px; margin-bottom: 2px;">Yesterday's Absentees:</label>
+          <label style="font-size: 11px; margin-bottom: 2px;">Quick View (Yesterday):</label>
           <div class="quick-filters" id="gradeQuickFilters">
              <button class="q-btn" onclick="applyQuickFilter('1aad')">G1</button>
              <button class="q-btn" onclick="applyQuickFilter('2aad')">G2</button>
@@ -202,6 +205,7 @@
         </div>
       </div>
 
+      <!-- Stats Tab -->
       <div id="statsTab" class="tab-content">
         <div class="stats-grid">
           <div class="stat-card"><div class="stat-val" id="statTotal">0</div><div class="stat-label">Total Students</div></div>
@@ -212,13 +216,13 @@
         <button class="btn btn-primary" onclick="refreshData(true)">🔄 Sync All Records</button>
       </div>
 
+      <!-- Registration Tab (Admin Only) -->
       <div id="regTab" class="tab-content">
         <h3>Registration</h3>
         <label>Full Name</label><input type="text" id="rName">
         <label>Mother's Name</label><input type="text" id="rMother">
         <label>DOB</label><input type="date" id="rDob">
         <label>POB (Place of Birth)</label><input type="text" id="rPob">
-        <label>Transfer From</label><input type="text" id="rTransfer">
         <label>Phone</label><input type="text" id="rPhone">
         <label>Grade</label>
         <select id="rClass">
@@ -231,6 +235,7 @@
         <button class="btn btn-primary" onclick="doRegister()">Complete Registration</button>
       </div>
 
+      <!-- Fee Tab (Admin Only) -->
       <div id="feeTab" class="tab-content">
         <h3>Fees</h3>
         <label>Grade</label>
@@ -340,7 +345,7 @@
       renderRecords();
     }
 
-    // Modal Helper
+    // Modal Controller
     window.openStudentSummary = (roll, grade) => {
       const student = students.find(s => String(s.ID) === String(roll) && s.Class === grade);
       if(!student) return;
@@ -359,34 +364,31 @@
         </div>
       `;
 
-      // Filter logs for this specific student
-      const logs = attLogs.filter(l => String(l.roll) === String(roll) && (l.status === 'absent' || l.status === 'sick'));
+      // Filter logs (Sick or Absent only)
+      const logs = attLogs.filter(l => String(l.roll) === String(roll) && l.class === grade && (l.status === 'absent' || l.status === 'sick'));
       const absCount = logs.filter(l => l.status === 'absent').length;
       const sickCount = logs.filter(l => l.status === 'sick').length;
 
       let historyHtml = `
-        <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin-bottom:10px; display:flex; gap:10px">
-          <div style="flex:1">Absent: <b>${absCount}</b></div>
-          <div style="flex:1">Sick: <b>${sickCount}</b></div>
+        <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin-bottom:10px; display:flex; gap:10px; text-align:center">
+          <div style="flex:1">Absent<br><b>${absCount}</b></div>
+          <div style="flex:1">Sick<br><b>${sickCount}</b></div>
         </div>
       `;
 
       if(logs.length === 0) {
         historyHtml += `<p style="color:#94a3b8; text-align:center; padding:10px">No absence/sick records found.</p>`;
       } else {
-        // Sort logs newest first
         logs.sort((a,b) => new Date(b.date) - new Date(a.date));
-        historyHtml += `<ul style="list-style:none; max-height:200px; overflow-y:auto">`;
+        historyHtml += `<ul style="list-style:none; max-height:250px; overflow-y:auto">`;
         logs.forEach(l => {
           const d = new Date(l.date);
           const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
-          const sessCode = l.session === 'Morning' ? 'M' : 'B';
           historyHtml += `
             <li style="padding:8px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center">
               <span>${dateStr} <small style="color:#64748b">(${l.session})</small></span>
               <span class="badge badge-${l.status}">${l.status}</span>
-            </li>
-          `;
+            </li>`;
         });
         historyHtml += `</ul>`;
       }
@@ -395,9 +397,7 @@
       modal.style.display = 'flex';
     };
 
-    window.closeModal = () => {
-      document.getElementById('studentModal').style.display = 'none';
-    };
+    window.closeModal = () => document.getElementById('studentModal').style.display = 'none';
 
     function renderRecords() {
       const mode = document.getElementById('recordMode').value;
@@ -417,27 +417,24 @@
       quickBox.style.display = isHistory ? 'block' : 'none';
 
       if (mode === 'students') {
-        head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Grade</th><th>Status</th></tr>';
+        head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Status</th></tr>';
         students.filter(s => grade === 'all' || s.Class === grade).forEach(s => {
           body.innerHTML += `
             <tr>
               <td>${s.ID}</td>
               <td><span class="clickable-name" onclick="openStudentSummary('${s.ID}', '${s.Class}')">${s.Name}</span></td>
-              <td>${s.Class}</td>
               <td><span class="badge badge-${String(s.Status).toLowerCase()}">${s.Status}</span></td>
             </tr>`;
         });
       } 
       else if (mode === 'absent') {
-        head.innerHTML = '<tr><th>Date</th><th>Name</th><th>Sessions / Status</th></tr>';
+        head.innerHTML = '<tr><th>Date</th><th>Name</th><th>Log</th></tr>';
         const grouped = {};
         attLogs.filter(l => {
           const isAbs = l.status === 'absent' || l.status === 'sick';
           const isGrade = grade === 'all' || l.class === grade;
           
-          const logDateObj = new Date(l.date);
-          const logDateStr = logDateObj.toISOString().split('T')[0];
-          
+          const logDateStr = new Date(l.date).toISOString().split('T')[0];
           const isDate = !dateVal || logDateStr === dateVal;
           const isSession = sessionVal === 'all' || l.session === sessionVal;
           return isAbs && isGrade && isDate && isSession;
@@ -446,9 +443,7 @@
            const displayDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
            const key = `${l.roll}_${l.class}_${displayDate}`;
            
-           if(!grouped[key]) {
-             grouped[key] = { date: displayDate, name: l.name, roll: l.roll, class: l.class, sessions: [], statuses: new Set() };
-           }
+           if(!grouped[key]) grouped[key] = { date: displayDate, name: l.name, roll: l.roll, class: l.class, sessions: [], statuses: new Set() };
            const code = (l.session === 'Morning') ? 'M' : (l.session === 'After Break' ? 'B' : '?');
            if(!grouped[key].sessions.includes(code)) grouped[key].sessions.push(code);
            grouped[key].statuses.add(l.status);
@@ -466,7 +461,7 @@
         });
       }
       else if (mode === 'summary') {
-        head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Week</th><th>Month</th></tr>';
+        head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Wk</th><th>Mo</th></tr>';
         students.filter(s => (grade === 'all' || s.Class === grade) && String(s.Status).toLowerCase() === 'active').forEach(s => {
           const stats = attSummary[String(s.ID)] || { w: 0, m: 0 };
           body.innerHTML += `
@@ -500,8 +495,7 @@
     window.showTab = (t) => {
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      const content = document.getElementById(t+'Tab');
-      if(content) content.classList.add('active');
+      document.getElementById(t+'Tab').classList.add('active');
       const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(`'${t}'`));
       if(btn) btn.classList.add('active');
       if(t === 'list') renderRecords();
@@ -561,7 +555,6 @@
       const res = await call('addStudent', {
         name, motherName: document.getElementById('rMother').value, dob: document.getElementById('rDob').value,
         pob: document.getElementById('rPob').value, phone: document.getElementById('rPhone').value,
-        transferFrom: document.getElementById('rTransfer').value,
         class: document.getElementById('rClass').value, status: document.getElementById('rStatus').value
       });
       if(res.success) { msg("Registered: ID "+res.id); document.getElementById('rName').value = ""; refreshData(true); }
@@ -574,10 +567,7 @@
       if(res.success) { msg("Payment Saved"); document.getElementById('fRoll').value = ""; document.getElementById('fAmt').value = ""; }
     };
 
-    // Close modal on outside click
-    window.onclick = (e) => {
-      if(e.target == document.getElementById('studentModal')) closeModal();
-    };
+    window.onclick = (e) => { if(e.target == document.getElementById('studentModal')) closeModal(); };
   </script>
 </body>
 </html>
