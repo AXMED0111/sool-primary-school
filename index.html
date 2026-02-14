@@ -224,6 +224,7 @@
         <label>DOB</label><input type="date" id="rDob">
         <label>POB (Place of Birth)</label><input type="text" id="rPob">
         <label>Phone</label><input type="text" id="rPhone">
+        <label>Transfer From</label><input type="text" id="rTransfer">
         <label>Grade</label>
         <select id="rClass">
           <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option><option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
@@ -345,7 +346,6 @@
       renderRecords();
     }
 
-    // Modal Controller
     window.openStudentSummary = (roll, grade) => {
       const student = students.find(s => String(s.ID) === String(roll) && s.Class === grade);
       if(!student) return;
@@ -364,7 +364,6 @@
         </div>
       `;
 
-      // Filter logs (Sick or Absent only)
       const logs = attLogs.filter(l => String(l.roll) === String(roll) && l.class === grade && (l.status === 'absent' || l.status === 'sick'));
       const absCount = logs.filter(l => l.status === 'absent').length;
       const sickCount = logs.filter(l => l.status === 'sick').length;
@@ -541,7 +540,7 @@
       if(res.success) { msg("Saved"); document.getElementById('rollId').value = ""; document.getElementById('rollName').value = ""; refreshData(); }
     };
 
-    window.markAll = async () => {
+    window.markAllPresent = async () => {
       const res = await call('markAllPresent', {
         date: document.getElementById('attDate').value, session: document.getElementById('attSession').value,
         class: document.getElementById('attClass').value, recordedBy: user.username
@@ -553,11 +552,23 @@
       const name = document.getElementById('rName').value;
       if(!name) return msg("Name required", "error");
       const res = await call('addStudent', {
-        name, motherName: document.getElementById('rMother').value, dob: document.getElementById('rDob').value,
-        pob: document.getElementById('rPob').value, phone: document.getElementById('rPhone').value,
-        class: document.getElementById('rClass').value, status: document.getElementById('rStatus').value
+        name, 
+        motherName: document.getElementById('rMother').value, 
+        dob: document.getElementById('rDob').value,
+        pob: document.getElementById('rPob').value, 
+        phone: document.getElementById('rPhone').value,
+        transferFrom: document.getElementById('rTransfer').value,
+        class: document.getElementById('rClass').value, 
+        status: document.getElementById('rStatus').value
       });
-      if(res.success) { msg("Registered: ID "+res.id); document.getElementById('rName').value = ""; refreshData(true); }
+      if(res.success) { 
+        msg("Registered: ID "+res.id); 
+        document.getElementById('rName').value = ""; 
+        document.getElementById('rMother').value = ""; 
+        document.getElementById('rPhone').value = ""; 
+        document.getElementById('rTransfer').value = ""; 
+        refreshData(true); 
+      }
     };
 
     window.doFee = async () => {
