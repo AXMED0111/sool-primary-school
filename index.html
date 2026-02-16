@@ -170,7 +170,7 @@
         </div>
 
         <div id="quickFilterContainer">
-          <label style="font-size: 11px; margin-bottom: 2px;">Quick View (Yesterday):</label>
+          <label style="font-size: 11px; margin-bottom: 2px;">Quick View (Today):</label>
           <div class="quick-filters" id="gradeQuickFilters">
              <button class="q-btn" onclick="applyQuickFilter('1aad')">G1</button>
              <button class="q-btn" onclick="applyQuickFilter('2aad')">G2</button>
@@ -185,7 +185,7 @@
 
         <div id="filterSection">
             <div class="search-box">
-              <input type="text" id="searchFilter" placeholder="Search by name..." oninput="renderRecords()">
+              <input type="text" id="searchFilter" placeholder="Search by name or phone..." oninput="renderRecords()">
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px">
               <select id="listFilter" onchange="renderRecords()" style="flex:1">
@@ -275,6 +275,28 @@
     let user = null, students = [], attLogs = [], attSummary = {}, currentAttStatus = 'present';
     let studentCache = {};
 
+    // Helper to get Date in UTC+3 (EAT)
+    function getEATDate(dateObj = new Date()) {
+      const offset = 3; // +3 zone
+      const localTime = dateObj.getTime();
+      const localOffset = dateObj.getTimezoneOffset() * 60000;
+      const utc = localTime + localOffset;
+      return new Date(utc + (3600000 * offset));
+    }
+
+    // Helper to format Date for input[type="date"]
+    function formatISODate(date) {
+      const d = getEATDate(date);
+      return d.toISOString().split('T')[0];
+    }
+
+    // Helper for table display (DD/MM/YYYY)
+    function formatTableDate(dateString) {
+      if(!dateString) return "-";
+      const d = getEATDate(new Date(dateString));
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+
     function msg(text, type='success') {
       const el = user ? document.getElementById('appMsg') : document.getElementById('loginMsg');
       el.textContent = text; el.className = `message ${type}`; el.style.display = 'block';
@@ -303,7 +325,7 @@
         document.getElementById('appView').style.display = 'block';
         document.getElementById('greet').textContent = `Hi, ${user.username}`;
         document.getElementById('roleDisplay').textContent = user.role;
-        document.getElementById('attDate').valueAsDate = new Date();
+        document.getElementById('attDate').value = formatISODate(new Date());
         if(user.role === 'admin') {
           document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('reg')">Reg</button>`;
           document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('fee')">Fees</button>`;
@@ -349,9 +371,7 @@
     function applyQuickFilter(grade) {
       document.getElementById('recordMode').value = 'absent';
       document.getElementById('listFilter').value = grade;
-      const yest = new Date();
-      yest.setDate(yest.getDate() - 1);
-      document.getElementById('dateFilter').value = yest.toISOString().split('T')[0];
+      document.getElementById('dateFilter').value = formatISODate(new Date());
       document.querySelectorAll('.q-btn').forEach(b => {
         b.classList.toggle('active', b.textContent.includes(grade.replace('aad','')));
       });
@@ -375,6 +395,7 @@
           <span class="badge ${statusClass}">${student.Status}</span>
         </div>
         <div style="font-size: 11px; color: #64748b;">Mother: ${student.MotherName || '-'}</div>
+        <div style="font-size: 11px; color: #64748b;">Phone: ${student.Phone || 'No phone recorded'}</div>
       `;
 
       // Filter logs for Absent, Sick, or Late
@@ -402,8 +423,7 @@
         relevantLogs.sort((a,b) => new Date(b.date) - new Date(a.date));
         historyHtml += `<ul style="list-style:none; max-height:250px; overflow-y:auto">`;
         relevantLogs.forEach(l => {
-          const d = new Date(l.date);
-          const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
+          const dateStr = formatTableDate(l.date);
           historyHtml += `
             <li style="padding:8px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center">
               <span>${dateStr} <small style="color:#64748b">(${l.session})</small></span>
@@ -441,13 +461,19 @@
         head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Status</th></tr>';
         students.filter(s => {
           const matchGrade = grade === 'all' || s.Class === grade;
-          const matchSearch = !searchVal || s.Name.toLowerCase().includes(searchVal);
+          // Search Name OR Phone Number
+          const matchSearch = !searchVal || 
+                              s.Name.toLowerCase().includes(searchVal) || 
+                              (s.Phone && String(s.Phone).includes(searchVal));
           return matchGrade && matchSearch;
         }).forEach(s => {
           body.innerHTML += `
             <tr>
               <td>${s.ID}</td>
-              <td><span class="clickable-name" onclick="openStudentSummary('${s.ID}', '${s.Class}')">${s.Name}</span></td>
+              <td>
+                <span class="clickable-name" onclick="openStudentSummary('${s.ID}', '${s.Class}')">${s.Name}</span><br>
+                <small style="color:#94a3b8">${s.Phone || ''}</small>
+              </td>
               <td><span class="badge badge-${String(s.Status).toLowerCase()}">${s.Status}</span></td>
             </tr>`;
         });
@@ -458,15 +484,19 @@
         attLogs.filter(l => {
           const isRelevant = l.status === 'absent' || l.status === 'sick' || l.status === 'late';
           const isGrade = grade === 'all' || l.class === grade;
-          const matchSearch = !searchVal || l.name.toLowerCase().includes(searchVal);
           
-          const logDateStr = new Date(l.date).toISOString().split('T')[0];
+          // Get student object for phone search
+          const studentRef = students.find(s => String(s.ID) === String(l.roll) && s.Class === l.class);
+          const matchSearch = !searchVal || 
+                              l.name.toLowerCase().includes(searchVal) || 
+                              (studentRef && studentRef.Phone && String(studentRef.Phone).includes(searchVal));
+          
+          const logDateStr = formatISODate(new Date(l.date));
           const isDate = !dateVal || logDateStr === dateVal;
           const isSession = sessionVal === 'all' || l.session === sessionVal;
           return isRelevant && isGrade && isDate && isSession && matchSearch;
         }).forEach(l => {
-           const d = new Date(l.date);
-           const displayDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
+           const displayDate = formatTableDate(l.date);
            const key = `${l.roll}_${l.class}_${displayDate}`;
            
            if(!grouped[key]) grouped[key] = { date: displayDate, name: l.name, roll: l.roll, class: l.class, sessions: [], statuses: new Set() };
@@ -475,11 +505,15 @@
            grouped[key].statuses.add(l.status);
         });
 
-        Object.values(grouped).sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(g => {
+        Object.values(grouped).sort((a,b) => {
+          // Sort by actual date values reversed
+          const [dayA, monthA, yearA] = a.date.split('/');
+          const [dayB, monthB, yearB] = b.date.split('/');
+          return new Date(yearB, monthB-1, dayB) - new Date(yearA, monthA-1, dayA);
+        }).forEach(g => {
            const sessHtml = Array.from(new Set(g.sessions)).sort().map(s => `<span class="session-indicator sess-${s.toLowerCase()}">${s}</span>`).join('');
            const statusArray = Array.from(g.statuses);
            const statusText = statusArray.join(' / ');
-           // Primary badge color: prioritize absent, then sick, then late
            let primaryStatus = statusArray.includes('absent') ? 'absent' : (statusArray.includes('sick') ? 'sick' : 'late');
            
            body.innerHTML += `
@@ -494,7 +528,9 @@
         head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Wk</th><th>Mo</th></tr>';
         students.filter(s => {
           const matchGrade = grade === 'all' || s.Class === grade;
-          const matchSearch = !searchVal || s.Name.toLowerCase().includes(searchVal);
+          const matchSearch = !searchVal || 
+                              s.Name.toLowerCase().includes(searchVal) || 
+                              (s.Phone && String(s.Phone).includes(searchVal));
           return matchGrade && matchSearch && String(s.Status).toLowerCase() === 'active';
         }).forEach(s => {
           const stats = attSummary[String(s.ID)] || { w: 0, m: 0 };
@@ -609,6 +645,7 @@
         document.getElementById('rName').value = ""; 
         document.getElementById('rMother').value = ""; 
         document.getElementById('rTransfer').value = "";
+        document.getElementById('rPhone').value = "";
         refreshData(true); 
       }
     };
