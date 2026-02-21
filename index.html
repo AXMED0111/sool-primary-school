@@ -77,6 +77,11 @@
     .admin-only { display: none; }
     body.is-admin .admin-only { display: block; }
     body.is-admin .admin-only-inline { display: inline; }
+    
+    /* Optimized preview list styling */
+    #previewList { font-size: 12px; }
+    #previewList div { padding: 4px 0; border-bottom: 1px solid #f0f0f0; }
+    #previewList div:last-child { border-bottom: none; }
   </style>
 </head>
 <body>
@@ -274,22 +279,20 @@
   </div>
 
   <script>
-    // CRITICAL: Replace this with your deployed Google Web App URL
     const API = 'https://script.google.com/macros/s/AKfycbytsAgEmsOpEkkQMnibaGMweNIAb1gxToHg4f5vOis0pjubgEMW583s424qCAhSuen5-A/exec';
     
     let user = null, students = [], attLogs = [], attSummary = {}, currentAttStatus = 'present';
     let studentCache = {};
+    let classListCache = {}; // === FIX: Cache for class student lists ===
     let isAdmin = false;
     
-    // === PERFORMANCE: In-memory API cache ===
     const apiCache = new Map();
-    const CACHE_TTL = 60000; // 60 seconds
+    const CACHE_TTL = 60000;
     
     async function call(action, data={}, quiet=false) {
       const cacheKey = `${action}_${JSON.stringify(data)}`;
       const now = Date.now();
       
-      // Check cache first
       if (apiCache.has(cacheKey)) {
         const { timestamp, result } = apiCache.get(cacheKey);
         if (now - timestamp < CACHE_TTL) {
@@ -304,7 +307,6 @@
         const res = await r.json();
         if(!quiet) document.body.classList.remove('loading');
         
-        // Cache successful responses
         if (!res.error) {
           apiCache.set(cacheKey, { timestamp: now, result: res });
         }
@@ -315,7 +317,6 @@
       }
     }
 
-    // Helper to get Date in UTC+3 (EAT)
     function getEATDate(dateObj = new Date()) {
       const offset = 3;
       const localTime = dateObj.getTime();
@@ -335,7 +336,6 @@
       return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
     }
     
-    // === FIX: Normalize dates for reliable filtering ===
     function normalizeDateForFilter(dateInput) {
       if (!dateInput) return null;
       const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
@@ -343,13 +343,16 @@
       return `${eat.getFullYear()}-${String(eat.getMonth()+1).padStart(2,'0')}-${String(eat.getDate()).padStart(2,'0')}`;
     }
 
-    function msg(text, type='success') {
-      const el = user ? document.getElementById('appMsg') : document.getElementById('loginMsg');
-      el.textContent = text; el.className = `message ${type}`; el.style.display = 'block';
-      setTimeout(() => el.style.display = 'none', 4000);
+    function msg(text, type='success', target='app') {
+      const el = target === 'login' ? document.getElementById('loginMsg') : document.getElementById('appMsg');
+      if (el) {
+        el.textContent = text; 
+        el.className = `message ${type}`; 
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 3000);
+      }
     }
 
-    // === PERFORMANCE: Debounce utility ===
     function debounce(func, wait) {
       let timeout;
       return function executedFunction(...args) {
@@ -365,7 +368,6 @@
     const debouncedRenderRecords = debounce(renderRecords, 300);
     const tabContentCache = {};
     
-    // === FIX: Updated login to set admin flag ===
     document.getElementById('loginForm').onsubmit = async (e) => {
       e.preventDefault();
       const res = await call('login', { username: document.getElementById('user').value, password: document.getElementById('pass').value });
@@ -373,7 +375,6 @@
         user = res.user;
         isAdmin = (user.role && user.role.toLowerCase() === 'admin');
         
-        // Set admin class on body for CSS hiding
         if (isAdmin) {
           document.body.classList.add('is-admin');
         }
@@ -393,10 +394,9 @@
         }
         showTab('att');
         refreshData();
-      } else msg(res.message || "Login Failed", "error");
+      } else msg(res.message || "Login Failed", "error", "login");
     };
     
-    // === FIX: Updated session restore to set admin flag ===
     document.addEventListener('DOMContentLoaded', () => {
       const savedUser = localStorage.getItem('sool_user');
       const savedAdmin = localStorage.getItem('sool_isAdmin');
@@ -429,39 +429,66 @@
       }
     });
 
-    // === FIX: Proper logout function ===
+    // === FIX: Complete logout with immediate view switch ===
     window.doLogout = () => {
-      // Clear localStorage session
-      localStorage.removeItem('sool_user');
-      localStorage.removeItem('sool_isAdmin');
-      
-      // Clear in-memory session
-      user = null;
-      isAdmin = false;
-      
-      // Remove admin class
-      document.body.classList.remove('is-admin');
-      
-      // Clear API cache
-      apiCache.clear();
-      tabContentCache = {};
-      
-      // Hide app, show login
-      document.getElementById('appView').style.display = 'none';
-      document.getElementById('loginView').style.display = 'block';
-      
-      // Reset form
-      document.getElementById('loginForm').reset();
-      document.getElementById('loginMsg').style.display = 'none';
-      
-      // Reset nav tabs (remove admin tabs)
-      document.getElementById('nav').innerHTML = `
-        <button class="tab-btn active" onclick="showTab('att')">Attendance</button>
-        <button class="tab-btn" onclick="showTab('list')">Records</button>
-        <button class="tab-btn" onclick="showTab('stats')">Status</button>
-      `;
-      
-      msg("Logged out successfully", "success");
+      try {
+        // Clear all storage
+        localStorage.removeItem('sool_user');
+        localStorage.removeItem('sool_isAdmin');
+        
+        // Clear memory
+        user = null;
+        isAdmin = false;
+        apiCache.clear();
+        classListCache = {};
+        tabContentCache = {};
+        
+        // Remove admin styling
+        document.body.classList.remove('is-admin');
+        
+        // === CRITICAL: Switch views immediately ===
+        const appView = document.getElementById('appView');
+        const loginView = document.getElementById('loginView');
+        
+        // Hide app completely
+        appView.style.setProperty('display', 'none', 'important');
+        
+        // Show login
+        loginView.style.setProperty('display', 'block', 'important');
+        
+        // Reset forms
+        document.getElementById('loginForm').reset();
+        document.getElementById('attClass').value = '';
+        document.getElementById('rollId').value = '';
+        document.getElementById('rollName').value = '';
+        document.getElementById('searchFilter').value = '';
+        document.getElementById('previewList').style.display = 'none';
+        document.getElementById('batchBtn').style.display = 'none';
+        
+        // Reset nav
+        document.getElementById('nav').innerHTML = `
+          <button class="tab-btn active" onclick="showTab('att')">Attendance</button>
+          <button class="tab-btn" onclick="showTab('list')">Records</button>
+          <button class="tab-btn" onclick="showTab('stats')">Status</button>
+        `;
+        
+        // Show logout message on login page
+        const loginMsg = document.getElementById('loginMsg');
+        loginMsg.textContent = "✓ Logged out successfully";
+        loginMsg.className = "message success";
+        loginMsg.style.display = 'block';
+        
+        // Force browser repaint
+        setTimeout(() => {
+          loginMsg.style.display = 'none';
+        }, 3000);
+        
+        console.log('Logout completed');
+      } catch(err) {
+        console.error('Logout error:', err);
+        // Fallback: reload page
+        window.location.href = window.location.href;
+      }
     };
 
     async function refreshData(manual=false) {
@@ -473,6 +500,7 @@
       if(Array.isArray(sData)) {
           students = sData;
           studentCache = {};
+          classListCache = {}; // Clear class cache on refresh
           students.forEach(s => studentCache[`${s.Class}_${s.ID}`] = s.Name);
       }
       if(Array.isArray(lData)) attLogs = lData;
@@ -519,7 +547,6 @@
       nameEl.textContent = student.Name;
       const statusClass = `badge-${String(student.Status).toLowerCase()}`;
       
-      // === FIX: Hide sensitive info from non-admin users ===
       let metaHtml = `
         <div style="display:flex; justify-content:space-between; margin-bottom:5px">
           <span>Roll: <b>#${student.ID}</b> | Grade: <b>${student.Class}</b></span>
@@ -602,7 +629,6 @@
         head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Status</th></tr>';
         students.filter(s => {
           const matchGrade = grade === 'all' || s.Class === grade;
-          // === FIX: Search by Name, Phone, AND Mother's Name ===
           const matchSearch = !searchVal || 
                               s.Name.toLowerCase().includes(searchVal) || 
                               (s.Phone && String(s.Phone).includes(searchVal)) ||
@@ -610,13 +636,10 @@
           return matchGrade && matchSearch;
         }).forEach(s => {
           const tr = document.createElement('tr');
-          
-          // === FIX: Hide phone from non-admin in student list ===
           let phoneDisplay = '';
           if (isAdmin && s.Phone) {
             phoneDisplay = `<small style="color:#94a3b8">${s.Phone}</small>`;
           }
-          
           tr.innerHTML = `
             <td>${s.ID}</td>
             <td>
@@ -637,7 +660,6 @@
           const isGrade = grade === 'all' || l.class === grade;
           
           const studentRef = students.find(s => String(s.ID) === String(l.roll) && s.Class === l.class);
-          // === FIX: Search by Name, Phone, AND Mother's Name ===
           const matchSearch = !searchVal || 
                               l.name.toLowerCase().includes(searchVal) || 
                               (studentRef && studentRef.Phone && String(studentRef.Phone).includes(searchVal)) ||
@@ -681,7 +703,6 @@
         head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Wk</th><th>Mo</th></tr>';
         students.filter(s => {
           const matchGrade = grade === 'all' || s.Class === grade;
-          // === FIX: Search by Name, Phone, AND Mother's Name ===
           const matchSearch = !searchVal || 
                               s.Name.toLowerCase().includes(searchVal) || 
                               (s.Phone && String(s.Phone).includes(searchVal)) ||
@@ -704,7 +725,6 @@
     }
 
     function exportCSV() {
-      // === FIX: Only admin can export ===
       if (!isAdmin) {
         msg("Admin access required", "error");
         return;
@@ -719,7 +739,7 @@
         const data = Array.from(tr.querySelectorAll('td')).map(td => `"${td.innerText.replace(/\n/g, ' ')}"` );
         rows.push(data.join(','));
       });
-      const csvContent = "data:text/csv;charset=utf-8," + rows.join("\n");
+      const csvContent = "text/csv;charset=utf-8," + rows.join("\n");
       const link = document.createElement("a");
       link.setAttribute("href", encodeURI(csvContent));
       link.setAttribute("download", `SoolSchool_${mode}.csv`);
@@ -727,7 +747,6 @@
     }
 
     window.showTab = (t) => {
-      // === FIX: Prevent non-admin from accessing admin tabs ===
       if ((t === 'reg' || t === 'fee') && !isAdmin) {
         msg("Admin access required", "error");
         return;
@@ -751,21 +770,63 @@
       tabContentCache[t] = true;
     };
 
+    // === FIX: Optimized class student list with caching ===
     window.handleClassChange = (type) => {
       const cls = document.getElementById('attClass').value;
       document.getElementById('batchBtn').style.display = cls ? 'block' : 'none';
       lookupStudent(type);
+      
       if(type === 'att') {
          const box = document.getElementById('previewList');
-         if(!cls) { box.style.display = 'none'; } 
-         else {
-           const list = students.filter(s => String(s.Class) === String(cls) && String(s.Status).toLowerCase() === 'active');
-           box.innerHTML = `<p style="font-size:10px; color:#666; margin-bottom:5px">Students in this class:</p>` + 
-                           list.map(s => `<div style="padding:3px 0; font-size:11px">#${s.ID} ${s.Name}</div>`).join('') || "No active students";
-           box.style.display = 'block';
+         
+         if(!cls) { 
+           box.style.display = 'none'; 
+           return;
          }
+         
+         // === FIX: Use cached class list if available ===
+         if (classListCache[cls]) {
+           renderPreviewList(box, classListCache[cls]);
+           return;
+         }
+         
+         // Filter and cache
+         const list = students.filter(s => 
+           String(s.Class) === String(cls) && 
+           String(s.Status).toLowerCase() === 'active'
+         );
+         
+         classListCache[cls] = list;
+         renderPreviewList(box, list);
       }
     };
+    
+    // === FIX: Separate function for rendering preview list efficiently ===
+    function renderPreviewList(container, studentList) {
+      const fragment = document.createDocumentFragment();
+      
+      if (studentList.length === 0) {
+        container.innerHTML = "No active students";
+        container.style.display = 'block';
+        return;
+      }
+      
+      const header = document.createElement('p');
+      header.style.cssText = 'font-size:10px; color:#666; margin-bottom:5px';
+      header.textContent = `Students in this class (${studentList.length}):`;
+      fragment.appendChild(header);
+      
+      studentList.forEach(s => {
+        const div = document.createElement('div');
+        div.style.cssText = 'padding:3px 0; font-size:11px';
+        div.textContent = `#${s.ID} ${s.Name}`;
+        fragment.appendChild(div);
+      });
+      
+      container.innerHTML = '';
+      container.appendChild(fragment);
+      container.style.display = 'block';
+    }
 
     window.lookupStudent = (type) => {
       const isAtt = (type === 'att');
