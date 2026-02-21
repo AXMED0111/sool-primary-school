@@ -185,7 +185,7 @@
 
         <div id="filterSection">
             <div class="search-box">
-              <input type="text" id="searchFilter" placeholder="Search by name or phone..." oninput="renderRecords()">
+              <input type="text" id="searchFilter" placeholder="Search by name or phone..." oninput="debouncedRenderRecords()">
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px">
               <select id="listFilter" onchange="renderRecords()" style="flex:1">
@@ -274,27 +274,69 @@
     
     let user = null, students = [], attLogs = [], attSummary = {}, currentAttStatus = 'present';
     let studentCache = {};
+    
+    // === PERFORMANCE: In-memory API cache ===
+    const apiCache = new Map();
+    const CACHE_TTL = 60000; // 60 seconds
+    
+    async function call(action, data={}, quiet=false) {
+      const cacheKey = `${action}_${JSON.stringify(data)}`;
+      const now = Date.now();
+      
+      // Check cache first
+      if (apiCache.has(cacheKey)) {
+        const { timestamp, result } = apiCache.get(cacheKey);
+        if (now - timestamp < CACHE_TTL) {
+          return result;
+        }
+        apiCache.delete(cacheKey);
+      }
+      
+      if(!quiet) document.body.classList.add('loading');
+      try {
+        const r = await fetch(API, { method: 'POST', body: JSON.stringify({...data, action}) });
+        const res = await r.json();
+        if(!quiet) document.body.classList.remove('loading');
+        
+        // Cache successful responses
+        if (!res.error) {
+          apiCache.set(cacheKey, { timestamp: now, result: res });
+        }
+        return res;
+      } catch(e) {
+        if(!quiet) document.body.classList.remove('loading');
+        msg("Sync Error", "error"); return { error: true };
+      }
+    }
 
     // Helper to get Date in UTC+3 (EAT)
     function getEATDate(dateObj = new Date()) {
-      const offset = 3; // +3 zone
+      const offset = 3;
       const localTime = dateObj.getTime();
       const localOffset = dateObj.getTimezoneOffset() * 60000;
       const utc = localTime + localOffset;
       return new Date(utc + (3600000 * offset));
     }
 
-    // Helper to format Date for input[type="date"]
     function formatISODate(date) {
       const d = getEATDate(date);
       return d.toISOString().split('T')[0];
     }
 
-    // Helper for table display (DD/MM/YYYY)
     function formatTableDate(dateString) {
       if(!dateString) return "-";
       const d = getEATDate(new Date(dateString));
       return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+    
+    // === FIX: Normalize dates for reliable filtering ===
+    function normalizeDateForFilter(dateInput) {
+      if (!dateInput) return null;
+      // Handle both Date objects and ISO strings
+      const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+      const eat = getEATDate(d);
+      // Return YYYY-MM-DD string in EAT timezone for consistent comparison
+      return `${eat.getFullYear()}-${String(eat.getMonth()+1).padStart(2,'0')}-${String(eat.getDate()).padStart(2,'0')}`;
     }
 
     function msg(text, type='success') {
@@ -303,24 +345,33 @@
       setTimeout(() => el.style.display = 'none', 4000);
     }
 
-    async function call(action, data={}, quiet=false) {
-      if(!quiet) document.body.classList.add('loading');
-      try {
-        const r = await fetch(API, { method: 'POST', body: JSON.stringify({...data, action}) });
-        const res = await r.json();
-        if(!quiet) document.body.classList.remove('loading');
-        return res;
-      } catch(e) {
-        if(!quiet) document.body.classList.remove('loading');
-        msg("Sync Error", "error"); return { error: true };
-      }
+    // === PERFORMANCE: Debounce utility ===
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
     }
+    
+    // Debounced version of renderRecords for search
+    const debouncedRenderRecords = debounce(renderRecords, 300);
 
+    // === PERFORMANCE: Tab content cache ===
+    const tabContentCache = {};
+    
     document.getElementById('loginForm').onsubmit = async (e) => {
       e.preventDefault();
       const res = await call('login', { username: document.getElementById('user').value, password: document.getElementById('pass').value });
       if(res.success) {
         user = res.user;
+        // Optional: persist session (remove if not desired)
+        localStorage.setItem('sool_user', JSON.stringify(user));
+        
         document.getElementById('loginView').style.display = 'none';
         document.getElementById('appView').style.display = 'block';
         document.getElementById('greet').textContent = `Hi, ${user.username}`;
@@ -334,6 +385,27 @@
         refreshData();
       } else msg(res.message || "Login Failed", "error");
     };
+    
+    // Check for existing session on load
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedUser = localStorage.getItem('sool_user');
+      if (savedUser && !user) {
+        try {
+          user = JSON.parse(savedUser);
+          document.getElementById('loginView').style.display = 'none';
+          document.getElementById('appView').style.display = 'block';
+          document.getElementById('greet').textContent = `Hi, ${user.username}`;
+          document.getElementById('roleDisplay').textContent = user.role;
+          document.getElementById('attDate').value = formatISODate(new Date());
+          if(user.role === 'admin') {
+            document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('reg')">Reg</button>`;
+            document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('fee')">Fees</button>`;
+          }
+          showTab('att');
+          refreshData();
+        } catch(e) { localStorage.removeItem('sool_user'); }
+      }
+    });
 
     async function refreshData(manual=false) {
       const [sData, lData, sumData] = await Promise.all([
@@ -398,7 +470,6 @@
         <div style="font-size: 11px; color: #64748b;">Phone: ${student.Phone || 'No phone recorded'}</div>
       `;
 
-      // Filter logs for Absent, Sick, or Late
       const relevantLogs = attLogs.filter(l => 
         String(l.roll) === String(roll) && 
         l.class === grade && 
@@ -442,7 +513,7 @@
     function renderRecords() {
       const mode = document.getElementById('recordMode').value;
       const grade = document.getElementById('listFilter').value;
-      const dateVal = document.getElementById('dateFilter').value;
+      const dateVal = document.getElementById('dateFilter').value; // YYYY-MM-DD from input
       const sessionVal = document.getElementById('sessionFilter').value;
       const searchVal = document.getElementById('searchFilter').value.toLowerCase();
       const head = document.getElementById('recordHead');
@@ -451,7 +522,10 @@
       const sessInp = document.getElementById('sessionFilter');
       const quickBox = document.getElementById('quickFilterContainer');
       
+      // === PERFORMANCE: Use DocumentFragment for efficient DOM updates ===
+      const fragment = document.createDocumentFragment();
       body.innerHTML = '';
+      
       const isHistory = (mode === 'absent');
       dateInp.style.display = isHistory ? 'block' : 'none';
       sessInp.style.display = isHistory ? 'block' : 'none';
@@ -461,38 +535,40 @@
         head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Status</th></tr>';
         students.filter(s => {
           const matchGrade = grade === 'all' || s.Class === grade;
-          // Search Name OR Phone Number
           const matchSearch = !searchVal || 
                               s.Name.toLowerCase().includes(searchVal) || 
                               (s.Phone && String(s.Phone).includes(searchVal));
           return matchGrade && matchSearch;
         }).forEach(s => {
-          body.innerHTML += `
-            <tr>
-              <td>${s.ID}</td>
-              <td>
-                <span class="clickable-name" onclick="openStudentSummary('${s.ID}', '${s.Class}')">${s.Name}</span><br>
-                <small style="color:#94a3b8">${s.Phone || ''}</small>
-              </td>
-              <td><span class="badge badge-${String(s.Status).toLowerCase()}">${s.Status}</span></td>
-            </tr>`;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${s.ID}</td>
+            <td>
+              <span class="clickable-name" onclick="openStudentSummary('${s.ID}', '${s.Class}')">${s.Name}</span><br>
+              <small style="color:#94a3b8">${s.Phone || ''}</small>
+            </td>
+            <td><span class="badge badge-${String(s.Status).toLowerCase()}">${s.Status}</span></td>
+          `;
+          fragment.appendChild(tr);
         });
       } 
       else if (mode === 'absent') {
         head.innerHTML = '<tr><th>Date</th><th>Name</th><th>Log</th></tr>';
         const grouped = {};
+        
         attLogs.filter(l => {
           const isRelevant = l.status === 'absent' || l.status === 'sick' || l.status === 'late';
           const isGrade = grade === 'all' || l.class === grade;
           
-          // Get student object for phone search
           const studentRef = students.find(s => String(s.ID) === String(l.roll) && s.Class === l.class);
           const matchSearch = !searchVal || 
                               l.name.toLowerCase().includes(searchVal) || 
                               (studentRef && studentRef.Phone && String(studentRef.Phone).includes(searchVal));
           
-          const logDateStr = formatISODate(new Date(l.date));
-          const isDate = !dateVal || logDateStr === dateVal;
+          // === FIX: Normalize log date for reliable comparison ===
+          const logDateNormalized = normalizeDateForFilter(l.date);
+          const isDate = !dateVal || logDateNormalized === dateVal;
+          
           const isSession = sessionVal === 'all' || l.session === sessionVal;
           return isRelevant && isGrade && isDate && isSession && matchSearch;
         }).forEach(l => {
@@ -506,7 +582,6 @@
         });
 
         Object.values(grouped).sort((a,b) => {
-          // Sort by actual date values reversed
           const [dayA, monthA, yearA] = a.date.split('/');
           const [dayB, monthB, yearB] = b.date.split('/');
           return new Date(yearB, monthB-1, dayB) - new Date(yearA, monthA-1, dayA);
@@ -516,12 +591,13 @@
            const statusText = statusArray.join(' / ');
            let primaryStatus = statusArray.includes('absent') ? 'absent' : (statusArray.includes('sick') ? 'sick' : 'late');
            
-           body.innerHTML += `
-            <tr>
-              <td>${g.date}</td>
-              <td><span class="clickable-name" onclick="openStudentSummary('${g.roll}', '${g.class}')">${g.name}</span></td>
-              <td><small>${g.class}<br>${sessHtml} <span class="badge badge-${primaryStatus}">${statusText}</span></small></td>
-            </tr>`;
+           const tr = document.createElement('tr');
+           tr.innerHTML = `
+            <td>${g.date}</td>
+            <td><span class="clickable-name" onclick="openStudentSummary('${g.roll}', '${g.class}')">${g.name}</span></td>
+            <td><small>${g.class}<br>${sessHtml} <span class="badge badge-${primaryStatus}">${statusText}</span></small></td>
+           `;
+           fragment.appendChild(tr);
         });
       }
       else if (mode === 'summary') {
@@ -534,15 +610,18 @@
           return matchGrade && matchSearch && String(s.Status).toLowerCase() === 'active';
         }).forEach(s => {
           const stats = attSummary[String(s.ID)] || { w: 0, m: 0 };
-          body.innerHTML += `
-            <tr>
-              <td>${s.ID}</td>
-              <td><span class="clickable-name" onclick="openStudentSummary('${s.ID}', '${s.Class}')">${s.Name}</span></td>
-              <td>${stats.w}d</td>
-              <td>${stats.m}d</td>
-            </tr>`;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${s.ID}</td>
+            <td><span class="clickable-name" onclick="openStudentSummary('${s.ID}', '${s.Class}')">${s.Name}</span></td>
+            <td>${stats.w}d</td>
+            <td>${stats.m}d</td>
+          `;
+          fragment.appendChild(tr);
         });
       }
+      
+      body.appendChild(fragment);
     }
 
     function exportCSV() {
@@ -555,7 +634,7 @@
         const data = Array.from(tr.querySelectorAll('td')).map(td => `"${td.innerText.replace(/\n/g, ' ')}"` );
         rows.push(data.join(','));
       });
-      const csvContent = "data:text/csv;charset=utf-8," + rows.join("\n");
+      const csvContent = "text/csv;charset=utf-8," + rows.join("\n");
       const link = document.createElement("a");
       link.setAttribute("href", encodeURI(csvContent));
       link.setAttribute("download", `SoolSchool_${mode}.csv`);
@@ -563,12 +642,23 @@
     }
 
     window.showTab = (t) => {
+      // === PERFORMANCE: Skip re-render if tab content already cached ===
+      if (tabContentCache[t] && t !== 'list') {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(t+'Tab').classList.add('active');
+        const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(`'${t}'`));
+        if(btn) btn.classList.add('active');
+        return;
+      }
+      
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(t+'Tab').classList.add('active');
       const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(`'${t}'`));
       if(btn) btn.classList.add('active');
       if(t === 'list') renderRecords();
+      tabContentCache[t] = true;
     };
 
     window.handleClassChange = (type) => {
