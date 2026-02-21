@@ -72,6 +72,11 @@
     .search-box { position: relative; margin-bottom: 10px; }
     .search-box input { padding-left: 35px; }
     .search-box::before { content: '🔍'; position: absolute; left: 10px; top: 12px; font-size: 16px; }
+    
+    /* Admin-only info styling */
+    .admin-only { display: none; }
+    body.is-admin .admin-only { display: block; }
+    body.is-admin .admin-only-inline { display: inline; }
   </style>
 </head>
 <body>
@@ -185,7 +190,7 @@
 
         <div id="filterSection">
             <div class="search-box">
-              <input type="text" id="searchFilter" placeholder="Search by name or phone..." oninput="debouncedRenderRecords()">
+              <input type="text" id="searchFilter" placeholder="Search by name, phone, or mother..." oninput="debouncedRenderRecords()">
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px">
               <select id="listFilter" onchange="renderRecords()" style="flex:1">
@@ -204,7 +209,7 @@
             </div>
         </div>
 
-        <button class="btn btn-outline" style="margin-bottom: 10px; width: auto; font-size: 11px;" onclick="exportCSV()">📥 Download CSV</button>
+        <button class="btn btn-outline admin-only" style="margin-bottom: 10px; width: auto; font-size: 11px;" onclick="exportCSV()">📥 Download CSV</button>
 
         <div class="table-container">
           <table id="recordTable">
@@ -264,7 +269,7 @@
         <button class="btn btn-success" onclick="doFee()">Save Payment</button>
       </div>
 
-      <button class="btn btn-danger" style="margin-top:20px; font-size:12px; border:1px solid #fee2e2; background:none; color:var(--danger)" onclick="location.reload()">Logout</button>
+      <button class="btn btn-danger" style="margin-top:20px; font-size:12px; border:1px solid #fee2e2; background:none; color:var(--danger)" onclick="doLogout()">Logout</button>
     </div>
   </div>
 
@@ -274,6 +279,7 @@
     
     let user = null, students = [], attLogs = [], attSummary = {}, currentAttStatus = 'present';
     let studentCache = {};
+    let isAdmin = false;
     
     // === PERFORMANCE: In-memory API cache ===
     const apiCache = new Map();
@@ -332,10 +338,8 @@
     // === FIX: Normalize dates for reliable filtering ===
     function normalizeDateForFilter(dateInput) {
       if (!dateInput) return null;
-      // Handle both Date objects and ISO strings
       const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
       const eat = getEATDate(d);
-      // Return YYYY-MM-DD string in EAT timezone for consistent comparison
       return `${eat.getFullYear()}-${String(eat.getMonth()+1).padStart(2,'0')}-${String(eat.getDate()).padStart(2,'0')}`;
     }
 
@@ -358,26 +362,32 @@
       };
     }
     
-    // Debounced version of renderRecords for search
     const debouncedRenderRecords = debounce(renderRecords, 300);
-
-    // === PERFORMANCE: Tab content cache ===
     const tabContentCache = {};
     
+    // === FIX: Updated login to set admin flag ===
     document.getElementById('loginForm').onsubmit = async (e) => {
       e.preventDefault();
       const res = await call('login', { username: document.getElementById('user').value, password: document.getElementById('pass').value });
       if(res.success) {
         user = res.user;
-        // Optional: persist session (remove if not desired)
+        isAdmin = (user.role && user.role.toLowerCase() === 'admin');
+        
+        // Set admin class on body for CSS hiding
+        if (isAdmin) {
+          document.body.classList.add('is-admin');
+        }
+        
         localStorage.setItem('sool_user', JSON.stringify(user));
+        localStorage.setItem('sool_isAdmin', isAdmin.toString());
         
         document.getElementById('loginView').style.display = 'none';
         document.getElementById('appView').style.display = 'block';
         document.getElementById('greet').textContent = `Hi, ${user.username}`;
         document.getElementById('roleDisplay').textContent = user.role;
         document.getElementById('attDate').value = formatISODate(new Date());
-        if(user.role === 'admin') {
+        
+        if(isAdmin) {
           document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('reg')">Reg</button>`;
           document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('fee')">Fees</button>`;
         }
@@ -386,26 +396,73 @@
       } else msg(res.message || "Login Failed", "error");
     };
     
-    // Check for existing session on load
+    // === FIX: Updated session restore to set admin flag ===
     document.addEventListener('DOMContentLoaded', () => {
       const savedUser = localStorage.getItem('sool_user');
+      const savedAdmin = localStorage.getItem('sool_isAdmin');
+      
       if (savedUser && !user) {
         try {
           user = JSON.parse(savedUser);
+          isAdmin = (savedAdmin === 'true' || (user.role && user.role.toLowerCase() === 'admin'));
+          
+          if (isAdmin) {
+            document.body.classList.add('is-admin');
+          }
+          
           document.getElementById('loginView').style.display = 'none';
           document.getElementById('appView').style.display = 'block';
           document.getElementById('greet').textContent = `Hi, ${user.username}`;
           document.getElementById('roleDisplay').textContent = user.role;
           document.getElementById('attDate').value = formatISODate(new Date());
-          if(user.role === 'admin') {
+          
+          if(isAdmin) {
             document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('reg')">Reg</button>`;
             document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('fee')">Fees</button>`;
           }
           showTab('att');
           refreshData();
-        } catch(e) { localStorage.removeItem('sool_user'); }
+        } catch(e) { 
+          localStorage.removeItem('sool_user'); 
+          localStorage.removeItem('sool_isAdmin');
+        }
       }
     });
+
+    // === FIX: Proper logout function ===
+    window.doLogout = () => {
+      // Clear localStorage session
+      localStorage.removeItem('sool_user');
+      localStorage.removeItem('sool_isAdmin');
+      
+      // Clear in-memory session
+      user = null;
+      isAdmin = false;
+      
+      // Remove admin class
+      document.body.classList.remove('is-admin');
+      
+      // Clear API cache
+      apiCache.clear();
+      tabContentCache = {};
+      
+      // Hide app, show login
+      document.getElementById('appView').style.display = 'none';
+      document.getElementById('loginView').style.display = 'block';
+      
+      // Reset form
+      document.getElementById('loginForm').reset();
+      document.getElementById('loginMsg').style.display = 'none';
+      
+      // Reset nav tabs (remove admin tabs)
+      document.getElementById('nav').innerHTML = `
+        <button class="tab-btn active" onclick="showTab('att')">Attendance</button>
+        <button class="tab-btn" onclick="showTab('list')">Records</button>
+        <button class="tab-btn" onclick="showTab('stats')">Status</button>
+      `;
+      
+      msg("Logged out successfully", "success");
+    };
 
     async function refreshData(manual=false) {
       const [sData, lData, sumData] = await Promise.all([
@@ -461,14 +518,25 @@
 
       nameEl.textContent = student.Name;
       const statusClass = `badge-${String(student.Status).toLowerCase()}`;
-      metaEl.innerHTML = `
+      
+      // === FIX: Hide sensitive info from non-admin users ===
+      let metaHtml = `
         <div style="display:flex; justify-content:space-between; margin-bottom:5px">
           <span>Roll: <b>#${student.ID}</b> | Grade: <b>${student.Class}</b></span>
           <span class="badge ${statusClass}">${student.Status}</span>
         </div>
-        <div style="font-size: 11px; color: #64748b;">Mother: ${student.MotherName || '-'}</div>
-        <div style="font-size: 11px; color: #64748b;">Phone: ${student.Phone || 'No phone recorded'}</div>
       `;
+      
+      if (isAdmin) {
+        metaHtml += `
+          <div style="font-size: 11px; color: #64748b;">Mother: ${student.MotherName || '-'}</div>
+          <div style="font-size: 11px; color: #64748b;">Phone: ${student.Phone || 'No phone recorded'}</div>
+        `;
+      } else {
+        metaHtml += `<div style="font-size: 11px; color: #64748b;">Contact info visible to admin only</div>`;
+      }
+      
+      metaEl.innerHTML = metaHtml;
 
       const relevantLogs = attLogs.filter(l => 
         String(l.roll) === String(roll) && 
@@ -513,7 +581,7 @@
     function renderRecords() {
       const mode = document.getElementById('recordMode').value;
       const grade = document.getElementById('listFilter').value;
-      const dateVal = document.getElementById('dateFilter').value; // YYYY-MM-DD from input
+      const dateVal = document.getElementById('dateFilter').value;
       const sessionVal = document.getElementById('sessionFilter').value;
       const searchVal = document.getElementById('searchFilter').value.toLowerCase();
       const head = document.getElementById('recordHead');
@@ -522,7 +590,6 @@
       const sessInp = document.getElementById('sessionFilter');
       const quickBox = document.getElementById('quickFilterContainer');
       
-      // === PERFORMANCE: Use DocumentFragment for efficient DOM updates ===
       const fragment = document.createDocumentFragment();
       body.innerHTML = '';
       
@@ -535,17 +602,26 @@
         head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Status</th></tr>';
         students.filter(s => {
           const matchGrade = grade === 'all' || s.Class === grade;
+          // === FIX: Search by Name, Phone, AND Mother's Name ===
           const matchSearch = !searchVal || 
                               s.Name.toLowerCase().includes(searchVal) || 
-                              (s.Phone && String(s.Phone).includes(searchVal));
+                              (s.Phone && String(s.Phone).includes(searchVal)) ||
+                              (s.MotherName && s.MotherName.toLowerCase().includes(searchVal));
           return matchGrade && matchSearch;
         }).forEach(s => {
           const tr = document.createElement('tr');
+          
+          // === FIX: Hide phone from non-admin in student list ===
+          let phoneDisplay = '';
+          if (isAdmin && s.Phone) {
+            phoneDisplay = `<small style="color:#94a3b8">${s.Phone}</small>`;
+          }
+          
           tr.innerHTML = `
             <td>${s.ID}</td>
             <td>
               <span class="clickable-name" onclick="openStudentSummary('${s.ID}', '${s.Class}')">${s.Name}</span><br>
-              <small style="color:#94a3b8">${s.Phone || ''}</small>
+              ${phoneDisplay}
             </td>
             <td><span class="badge badge-${String(s.Status).toLowerCase()}">${s.Status}</span></td>
           `;
@@ -561,11 +637,12 @@
           const isGrade = grade === 'all' || l.class === grade;
           
           const studentRef = students.find(s => String(s.ID) === String(l.roll) && s.Class === l.class);
+          // === FIX: Search by Name, Phone, AND Mother's Name ===
           const matchSearch = !searchVal || 
                               l.name.toLowerCase().includes(searchVal) || 
-                              (studentRef && studentRef.Phone && String(studentRef.Phone).includes(searchVal));
+                              (studentRef && studentRef.Phone && String(studentRef.Phone).includes(searchVal)) ||
+                              (studentRef && studentRef.MotherName && studentRef.MotherName.toLowerCase().includes(searchVal));
           
-          // === FIX: Normalize log date for reliable comparison ===
           const logDateNormalized = normalizeDateForFilter(l.date);
           const isDate = !dateVal || logDateNormalized === dateVal;
           
@@ -604,9 +681,11 @@
         head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Wk</th><th>Mo</th></tr>';
         students.filter(s => {
           const matchGrade = grade === 'all' || s.Class === grade;
+          // === FIX: Search by Name, Phone, AND Mother's Name ===
           const matchSearch = !searchVal || 
                               s.Name.toLowerCase().includes(searchVal) || 
-                              (s.Phone && String(s.Phone).includes(searchVal));
+                              (s.Phone && String(s.Phone).includes(searchVal)) ||
+                              (s.MotherName && s.MotherName.toLowerCase().includes(searchVal));
           return matchGrade && matchSearch && String(s.Status).toLowerCase() === 'active';
         }).forEach(s => {
           const stats = attSummary[String(s.ID)] || { w: 0, m: 0 };
@@ -625,6 +704,12 @@
     }
 
     function exportCSV() {
+      // === FIX: Only admin can export ===
+      if (!isAdmin) {
+        msg("Admin access required", "error");
+        return;
+      }
+      
       const mode = document.getElementById('recordMode').value;
       let rows = [];
       const table = document.getElementById('recordTable');
@@ -634,7 +719,7 @@
         const data = Array.from(tr.querySelectorAll('td')).map(td => `"${td.innerText.replace(/\n/g, ' ')}"` );
         rows.push(data.join(','));
       });
-      const csvContent = "text/csv;charset=utf-8," + rows.join("\n");
+      const csvContent = "data:text/csv;charset=utf-8," + rows.join("\n");
       const link = document.createElement("a");
       link.setAttribute("href", encodeURI(csvContent));
       link.setAttribute("download", `SoolSchool_${mode}.csv`);
@@ -642,7 +727,12 @@
     }
 
     window.showTab = (t) => {
-      // === PERFORMANCE: Skip re-render if tab content already cached ===
+      // === FIX: Prevent non-admin from accessing admin tabs ===
+      if ((t === 'reg' || t === 'fee') && !isAdmin) {
+        msg("Admin access required", "error");
+        return;
+      }
+      
       if (tabContentCache[t] && t !== 'list') {
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -718,6 +808,7 @@
     };
 
     window.doRegister = async () => {
+      if (!isAdmin) { msg("Admin access required", "error"); return; }
       const name = document.getElementById('rName').value;
       if(!name) return msg("Name required", "error");
       const res = await call('addStudent', {
@@ -741,6 +832,7 @@
     };
 
     window.doFee = async () => {
+      if (!isAdmin) { msg("Admin access required", "error"); return; }
       const roll = document.getElementById('fRoll').value, amt = document.getElementById('fAmt').value, name = document.getElementById('fName').value, cls = document.getElementById('fClass').value;
       if(!roll || !amt || !cls || !name) return msg("Check fields", "error");
       const res = await call('processFee', { student: name, roll, amount: amt, session: document.getElementById('fSession').value, recordedBy: user.username, class: cls });
