@@ -904,7 +904,7 @@
   </div><!-- /appView -->
 
   <script>
-  const API = 'https://script.google.com/macros/s/AKfycbytsAgEmsOpEkkQMnibaGMweNIAb1gxToHg4f5vOis0pjubgEMW583s424qCAhSuen5-A/exec';
+  const API = 'https://script.google.com/macros/s/AKfycbwovkmt8oY_BI_pZPWTVULWB3ct9Z25FXnveulsVDa4IIFmJ26mSEkf9tuHbXz6GrjqXg/exec';
 
   let user = null, students = [], attLogs = [], attSummary = {}, currentAttStatus = 'present';
   let studentCache = {}, classListCache = {}, feeLogs = [];
@@ -1105,8 +1105,16 @@
 
     // Fetch fee logs for admin
     if (isAdmin) {
+      // Always bypass cache for fee logs — clear any stale entry first
+      for (const key of apiCache.keys()) {
+        if (key.startsWith('getFeeLogs')) apiCache.delete(key);
+      }
       const fData = await call('getFeeLogs', {}, true);
-      if (Array.isArray(fData)) feeLogs = fData;
+      if (Array.isArray(fData)) {
+        feeLogs = fData;
+        // Debug: log first record's keys so you can verify field names in console
+        if (fData.length > 0) console.log('[Sool] Fee log fields:', Object.keys(fData[0]), '| sample:', fData[0]);
+      }
     }
 
     updateStats();
@@ -1639,6 +1647,16 @@
   // ════════════════════════════════════
   // UNPAID FILTER — month-based + search
   // ════════════════════════════════════
+  // ── Helper: normalise a fee log entry to consistent field names ──
+  // Handles whatever field names the backend returns (roll/rollNumber/ID, class/Class, session/Session/month/Month/term/Term)
+  function normFeeLog(f) {
+    return {
+      roll:    String(f.roll ?? f.rollNumber ?? f.ID ?? f.id ?? ''),
+      cls:     String(f.class ?? f.Class ?? f.grade ?? f.Grade ?? ''),
+      session: String(f.session ?? f.Session ?? f.month ?? f.Month ?? f.term ?? f.Term ?? '')
+    };
+  }
+
   function getUnpaidStudents(grade, month, searchVal='') {
     let classStudents = students.filter(s => String(s.Status).toLowerCase() === 'active');
     if (grade) classStudents = classStudents.filter(s => s.Class === grade);
@@ -1650,11 +1668,14 @@
         (s.Phone && String(s.Phone).includes(q))
       );
     }
-    const paidRolls = new Set(
-      feeLogs
-        .filter(f => (!grade || f.class === grade) && f.session === month)
-        .map(f => String(f.roll))
-    );
+    // Build paid set using normalised fields — match on roll + month, optionally class
+    const paidRolls = new Set();
+    feeLogs.forEach(f => {
+      const n = normFeeLog(f);
+      const monthMatch = n.session.toLowerCase() === month.toLowerCase();
+      const classMatch = !grade || n.cls === grade || n.cls === '';
+      if (monthMatch && classMatch) paidRolls.add(n.roll);
+    });
     return classStudents.filter(s => !paidRolls.has(String(s.ID)));
   }
 
@@ -1669,9 +1690,22 @@
     const totalActive = students.filter(s =>
       String(s.Status).toLowerCase() === 'active' && (!grade || s.Class === grade)
     ).length;
-    const paidCount = new Set(
-      feeLogs.filter(f => (!grade || f.class === grade) && f.session === month).map(f => String(f.roll))
-    ).size;
+
+    // Paid count: unique rolls that have a matching fee log for this month/grade
+    const paidRollsForStats = new Set();
+    feeLogs.forEach(f => {
+      const n = normFeeLog(f);
+      const monthMatch = n.session.toLowerCase() === month.toLowerCase();
+      const classMatch = !grade || n.cls === grade || n.cls === '';
+      if (monthMatch && classMatch) paidRollsForStats.add(n.roll);
+    });
+    // Only count rolls that belong to active students in this grade
+    const activeRolls = new Set(
+      students
+        .filter(s => String(s.Status).toLowerCase() === 'active' && (!grade || s.Class === grade))
+        .map(s => String(s.ID))
+    );
+    const paidCount = [...paidRollsForStats].filter(r => activeRolls.has(r)).length;
     const unpaidCount = Math.max(0, totalActive - paidCount);
 
     statsEl.style.display = totalActive > 0 ? 'block' : 'none';
@@ -1899,9 +1933,40 @@
       document.getElementById('fRoll').value = '';
       document.getElementById('fName').value = '';
       document.getElementById('fExtraAmt').value = '';
-      updateFeeAmountFromMonth(); // reset to default
-      const fData = await call('getFeeLogs', {}, true);
-      if (Array.isArray(fData)) feeLogs = fData;
+      updateFeeAmountFromMonth();
+
+      // ── OPTIMISTIC LOCAL UPDATE ──
+      // Add the new payment directly to feeLogs in memory so the filter
+      // updates instantly without waiting for the API to re-index.
+      // Store with all possible field name variants to be safe.
+      feeLogs.push({
+        roll: String(roll),
+        class: cls,
+        session: month,
+        student: name,
+        amount: total,
+        // alternate field names some backends use
+        rollNumber: String(roll),
+        Class: cls,
+        Session: month,
+        Month: month,
+        term: month,
+        Term: month
+      });
+
+      // ── ALSO BUST THE CACHE and re-fetch in background ──
+      // Delete any cached entry for getFeeLogs so the next real fetch is fresh
+      for (const key of apiCache.keys()) {
+        if (key.startsWith('getFeeLogs')) apiCache.delete(key);
+      }
+      // Re-fetch silently in background (don't await — UI already updated optimistically)
+      call('getFeeLogs', {}, true).then(fData => {
+        if (Array.isArray(fData) && fData.length > 0) {
+          feeLogs = fData;
+          renderUnpaidFilter();
+        }
+      });
+
       renderUnpaidFilter();
     }
   };
