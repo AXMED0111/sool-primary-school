@@ -472,6 +472,11 @@
       <button class="modal-close" onclick="closeModal()">✕</button>
       <div class="modal-name" id="modalName">Student Name</div>
       <div class="modal-meta" id="modalMeta"></div>
+      <!-- Export buttons for individual student -->
+      <div style="display:flex;gap:8px;margin-bottom:14px" id="modalExportBtns">
+        <button class="btn btn-sm btn-ghost" style="flex:1" onclick="exportStudentCSV()">📥 Export CSV</button>
+        <button class="btn btn-sm btn-ghost" style="flex:1" onclick="exportStudentPDF()">📄 Export PDF</button>
+      </div>
       <hr>
       <h4 style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Attendance History</h4>
       <div class="summary-pills" id="modalPills"></div>
@@ -679,6 +684,23 @@
               </div>
             </div>
 
+            <!-- Summary mode: holiday/vacation skip controls -->
+            <div id="summaryControls" style="display:none;margin-bottom:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:14px">
+              <div style="font-size:12px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">⛱️ Skip Months (Holidays / Summer)</div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px" id="monthSkipCheckboxes"></div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <div style="flex:1;min-width:160px">
+                  <label style="font-size:11px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">Count From</label>
+                  <input type="date" id="summaryFrom" onchange="renderRecords()" style="width:100%;padding:8px 10px;border:1px solid #fde68a;border-radius:8px;font-family:var(--font);font-size:13px;background:white;outline:none">
+                </div>
+                <div style="flex:1;min-width:160px">
+                  <label style="font-size:11px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">Count To</label>
+                  <input type="date" id="summaryTo" onchange="renderRecords()" style="width:100%;padding:8px 10px;border:1px solid #fde68a;border-radius:8px;font-family:var(--font);font-size:13px;background:white;outline:none">
+                </div>
+              </div>
+              <div style="font-size:11px;color:#a16207;margin-top:8px">ℹ️ Week = Sat–Thu · Friday is weekend · Skipped months are excluded from counts</div>
+            </div>
+
             <div class="table-wrap">
               <table id="recordTable">
                 <thead id="recordHead"></thead>
@@ -754,6 +776,19 @@
 
         <!-- ── FEES TAB (Admin) ── -->
         <div id="feeTab" class="tab-content">
+
+          <!-- Fee amount info banner -->
+          <div id="feeMonthBanner" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">Current Month</div>
+              <div id="feeMonthLabel" style="color:white;font-size:20px;font-weight:800;margin-top:2px">—</div>
+            </div>
+            <div style="text-align:right">
+              <div style="color:rgba(255,255,255,0.7);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">Fee Due</div>
+              <div id="feeDueLabel" style="color:#fbbf24;font-size:22px;font-weight:800;font-family:var(--mono);margin-top:2px">$5.00</div>
+            </div>
+          </div>
+
           <div class="panel">
             <div class="panel-title"><span class="icon">💰</span> Record Payment</div>
             <div class="panel-grid">
@@ -778,27 +813,58 @@
                 <input type="text" id="fName" readonly placeholder="Auto-filled from Roll #">
               </div>
               <div class="field">
-                <label>Amount ($)</label>
-                <input type="number" id="fAmt" placeholder="0.00">
+                <label>Month</label>
+                <select id="fSession" onchange="updateFeeAmountFromMonth()">
+                  <option value="January">January</option>
+                  <option value="February">February</option>
+                  <option value="March">March</option>
+                  <option value="April">April</option>
+                  <option value="May">May</option>
+                  <option value="June">June</option>
+                  <option value="July">July</option>
+                  <option value="August">August</option>
+                  <option value="September">September</option>
+                  <option value="October">October</option>
+                  <option value="November">November</option>
+                  <option value="December">December</option>
+                </select>
               </div>
             </div>
-            <div class="field">
-              <label>Term</label>
-              <select id="fSession">
-                <option value="Term 1">Term 1</option>
-                <option value="Term 2">Term 2</option>
-              </select>
+            <div class="panel-grid">
+              <div class="field">
+                <label>Base Amount ($) <span style="font-weight:400;color:var(--muted);font-size:11px">— default $5</span></label>
+                <input type="number" id="fAmt" placeholder="5.00" step="0.01" min="0">
+              </div>
+              <div class="field">
+                <label>Extra Fee ($) <span style="font-weight:400;color:var(--muted);font-size:11px">— optional</span></label>
+                <input type="number" id="fExtraAmt" placeholder="0.00" step="0.01" min="0" oninput="updateFeeTotal()">
+              </div>
             </div>
-            <button class="btn btn-success btn-full" onclick="doFee()">Save Payment</button>
+            <!-- Total display -->
+            <div id="feeTotalDisplay" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:13px;font-weight:600;color:#0369a1">Total Payment</span>
+              <span id="feeTotalVal" style="font-size:20px;font-weight:800;color:#0284c7;font-family:var(--mono)">$5.00</span>
+            </div>
+            <button class="btn btn-success btn-full" onclick="doFee()">💾 Save Payment</button>
           </div>
 
-          <!-- NEW: Unpaid Fee Filter Section -->
+          <!-- Unpaid Fee Filter Section -->
           <div class="panel">
             <div class="panel-title"><span class="icon">🔍</span> Unpaid Fee Filter</div>
+
+            <!-- Bigger search box -->
+            <div style="position:relative;margin-bottom:14px">
+              <input type="text" id="unpaidSearch"
+                placeholder="🔎  Search student by name or roll number..."
+                oninput="renderUnpaidFilter()"
+                style="width:100%;padding:14px 18px;font-size:15px;border:2px solid #e2e8f0;border-radius:12px;font-family:var(--font);outline:none;background:#f8fafc;transition:border-color .2s;"
+                onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#e2e8f0'">
+            </div>
+
             <div class="fee-filter-bar">
               <div class="field" style="margin:0;flex:1">
                 <select id="unpaidClassFilter" onchange="renderUnpaidFilter()">
-                  <option value="">-- Select Grade to Filter --</option>
+                  <option value="">-- All Grades --</option>
                   <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
                   <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
                   <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
@@ -807,8 +873,18 @@
               </div>
               <div class="field" style="margin:0;flex:1">
                 <select id="unpaidTermFilter" onchange="renderUnpaidFilter()">
-                  <option value="Term 1">Term 1</option>
-                  <option value="Term 2">Term 2</option>
+                  <option value="January">January</option>
+                  <option value="February">February</option>
+                  <option value="March">March</option>
+                  <option value="April">April</option>
+                  <option value="May">May</option>
+                  <option value="June">June</option>
+                  <option value="July">July</option>
+                  <option value="August">August</option>
+                  <option value="September">September</option>
+                  <option value="October">October</option>
+                  <option value="November">November</option>
+                  <option value="December">December</option>
                 </select>
               </div>
               <div class="export-btns">
@@ -1067,6 +1143,7 @@
     document.getElementById('pageTitle').textContent = info.title || t;
     document.getElementById('pageSubtitle').textContent = info.sub || '';
     if (t === 'list') renderRecords();
+    if (t === 'fee') initFeeTab();
     closeSidebar();
   };
 
@@ -1094,9 +1171,12 @@
   // ════════════════════════════════════
   // STUDENT SUMMARY MODAL
   // ════════════════════════════════════
+  let currentModalStudent = null;
+
   window.openStudentSummary = (roll, grade) => {
     const student = students.find(s => String(s.ID) === String(roll) && s.Class === grade);
     if (!student) return;
+    currentModalStudent = { student, roll, grade };
 
     document.getElementById('modalName').textContent = student.Name;
     const statusClass = `badge-${String(student.Status).toLowerCase()}`;
@@ -1146,8 +1226,109 @@
     document.getElementById('studentModal').classList.add('open');
   };
 
-  window.closeModal = () => document.getElementById('studentModal').classList.remove('open');
+  window.closeModal = () => { document.getElementById('studentModal').classList.remove('open'); currentModalStudent = null; };
   window.onclick = (e) => { if (e.target === document.getElementById('studentModal')) closeModal(); };
+
+  // ════════════════════════════════════
+  // EXPORT INDIVIDUAL STUDENT RECORD
+  // ════════════════════════════════════
+  function getStudentExportData() {
+    if (!currentModalStudent) return null;
+    const { student, roll, grade } = currentModalStudent;
+    const logs = attLogs.filter(l =>
+      String(l.roll) === String(roll) && l.class === grade
+    ).sort((a,b) => new Date(b.date) - new Date(a.date));
+    return { student, logs };
+  }
+
+  window.exportStudentCSV = () => {
+    const data = getStudentExportData();
+    if (!data) return;
+    const { student, logs } = data;
+    const rows = ['"Date","Session","Status"'];
+    logs.forEach(l => {
+      rows.push(`"${formatTableDate(l.date)}","${l.session}","${l.status}"`);
+    });
+    // Add student info block at top
+    const info = [
+      `"Student Record — ${student.Name}"`,
+      `"Roll: #${student.ID} | Grade: ${student.Class} | Status: ${student.Status}"`,
+      isAdmin ? `"Mother: ${student.MotherName || '-'} | Phone: ${student.Phone || '-'}"` : '',
+      '""',
+      '"Attendance Log:"'
+    ].filter(Boolean);
+    const all = [...info, ...rows];
+    const blob = new Blob([all.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Student_${student.Name.replace(/\s+/g,'_')}_Record.csv`;
+    document.body.appendChild(link); link.click();
+    document.body.removeChild(link); URL.revokeObjectURL(url);
+  };
+
+  window.exportStudentPDF = () => {
+    const data = getStudentExportData();
+    if (!data) return;
+    const { student, logs } = data;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFillColor(30, 58, 138);
+    doc.rect(0, 0, 210, 32, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(17); doc.setFont(undefined,'bold');
+    doc.text('Sool School — Student Record', 14, 12);
+    doc.setFontSize(11); doc.setFont(undefined,'normal');
+    doc.text(`${student.Name}  ·  Roll #${student.ID}  ·  ${student.Class}`, 14, 22);
+    doc.setFontSize(9);
+    doc.text(`Status: ${student.Status}${isAdmin && student.Phone ? '  ·  Phone: ' + student.Phone : ''}${isAdmin && student.MotherName ? '  ·  Mother: ' + student.MotherName : ''}`, 14, 29);
+    doc.setTextColor(0,0,0);
+
+    // Summary pills
+    const abs   = logs.filter(l=>l.status==='absent').length;
+    const sick  = logs.filter(l=>l.status==='sick').length;
+    const late  = logs.filter(l=>l.status==='late').length;
+    const pres  = logs.filter(l=>l.status==='present').length;
+
+    doc.setFontSize(10); doc.setFont(undefined,'bold');
+    doc.setFillColor(220,38,38); doc.roundedRect(14,36,40,14,3,3,'F');
+    doc.setFillColor(124,58,237); doc.roundedRect(58,36,40,14,3,3,'F');
+    doc.setFillColor(217,119,6); doc.roundedRect(102,36,40,14,3,3,'F');
+    doc.setFillColor(5,150,105); doc.roundedRect(146,36,40,14,3,3,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(8);
+    doc.text(`Absent: ${abs}`,  16, 44);
+    doc.text(`Sick: ${sick}`,   60, 44);
+    doc.text(`Late: ${late}`,  104, 44);
+    doc.text(`Present: ${pres}`,148, 44);
+    doc.setTextColor(0,0,0);
+
+    // Attendance table
+    const tableRows = logs.map(l => [formatTableDate(l.date), l.session, l.status.charAt(0).toUpperCase()+l.status.slice(1)]);
+    doc.autoTable({
+      head: [['Date', 'Session', 'Status']],
+      body: tableRows,
+      startY: 56, margin: { left: 14, right: 14 },
+      headStyles: { fillColor: [30,58,138], textColor:255, fontStyle:'bold', fontSize:10 },
+      bodyStyles: { fontSize:9, textColor:[30,41,59] },
+      alternateRowStyles: { fillColor:[248,250,252] },
+      styles: { cellPadding:4 },
+      didParseCell: (data) => {
+        if (data.section==='body' && data.column.index===2) {
+          const v = data.cell.raw?.toLowerCase();
+          if (v==='absent') data.cell.styles.textColor = [220,38,38];
+          else if (v==='sick') data.cell.styles.textColor = [124,58,237];
+          else if (v==='late') data.cell.styles.textColor = [217,119,6];
+          else if (v==='present') data.cell.styles.textColor = [5,150,105];
+        }
+      }
+    });
+
+    doc.setFontSize(8); doc.setTextColor(150);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, doc.internal.pageSize.height - 8);
+    doc.save(`Student_${student.Name.replace(/\s+/g,'_')}_Record.pdf`);
+  };
 
   // ════════════════════════════════════
   // RENDER RECORDS TABLE
@@ -1171,6 +1352,8 @@
     dateInp.style.display = isHistory ? '' : 'none';
     sessInp.style.display = isHistory ? '' : 'none';
     quickBox.style.display = isHistory ? 'block' : 'none';
+    const sc = document.getElementById('summaryControls');
+    if (sc) sc.style.display = (mode === 'summary') ? 'block' : 'none';
 
     if (mode === 'students') {
       head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Status</th></tr>';
@@ -1232,7 +1415,80 @@
         fragment.appendChild(tr);
       });
     } else if (mode === 'summary') {
-      head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Week</th><th>Month</th></tr>';
+      // ── Show/hide controls ──
+      document.getElementById('summaryControls').style.display = 'block';
+
+      // Build month-skip checkboxes once
+      const cbContainer = document.getElementById('monthSkipCheckboxes');
+      if (!cbContainer.dataset.built) {
+        cbContainer.dataset.built = '1';
+        MONTH_NAMES.forEach(m => {
+          const lbl = document.createElement('label');
+          lbl.style.cssText = 'display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid #fde68a;background:white;cursor:pointer;font-size:12px;font-weight:600;color:#92400e;';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.value = m;
+          cb.id = 'skip_' + m;
+          cb.onchange = renderRecords;
+          cb.style.accentColor = '#d97706';
+          lbl.appendChild(cb);
+          lbl.appendChild(document.createTextNode(m.slice(0,3)));
+          cbContainer.appendChild(lbl);
+        });
+      }
+
+      const skippedMonths = new Set(
+        MONTH_NAMES.filter(m => {
+          const cb = document.getElementById('skip_' + m);
+          return cb && cb.checked;
+        })
+      );
+
+      const fromVal = document.getElementById('summaryFrom').value;
+      const toVal   = document.getElementById('summaryTo').value;
+      const fromDate = fromVal ? new Date(fromVal + 'T00:00:00') : null;
+      const toDate   = toVal   ? new Date(toVal   + 'T23:59:59') : null;
+
+      // Compute absences per student from attLogs locally
+      // Weekend = Friday (day 5). Week = Sat(6)-Thu(4).
+      const today = getEATDate(new Date());
+      // Current week: find last Saturday (start of week)
+      const todayDay = today.getDay(); // 0=Sun…6=Sat
+      // Days since last Saturday: if today is Sat(6) → 0, Sun(0) → 1, Mon(1) → 2 … Fri(5) → 6
+      const daysSinceSat = (todayDay + 1) % 7; // Sat=0,Sun=1,Mon=2,Tue=3,Wed=4,Thu=5,Fri=6
+      const weekStart = new Date(today); weekStart.setDate(today.getDate() - daysSinceSat); weekStart.setHours(0,0,0,0);
+      // Current month start/end
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      const monthEnd   = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
+
+      // Helper: is a log entry valid (not skipped, in range, not Friday)
+      function isValidLog(l) {
+        const d = getEATDate(new Date(l.date));
+        if (d.getDay() === 5) return false; // Friday = weekend
+        const monthName = MONTH_NAMES[d.getMonth()];
+        if (skippedMonths.has(monthName)) return false;
+        if (fromDate && d < fromDate) return false;
+        if (toDate && d > toDate) return false;
+        return true;
+      }
+
+      // Build per-student counts
+      const studentStats = {};
+      attLogs.forEach(l => {
+        if (l.status !== 'absent' && l.status !== 'sick' && l.status !== 'late') return;
+        if (!isValidLog(l)) return;
+        const key = `${l.class}_${l.roll}`;
+        if (!studentStats[key]) studentStats[key] = { w: 0, m: 0, total: 0 };
+        const d = getEATDate(new Date(l.date));
+        // Week count (Sat–Thu of current week)
+        if (d >= weekStart && d <= today && d.getDay() !== 5) studentStats[key].w++;
+        // Month count (current month, unless range overrides)
+        const inMonth = fromDate ? (d >= fromDate && d <= (toDate || today)) : (d >= monthStart && d <= monthEnd);
+        if (inMonth) studentStats[key].m++;
+        studentStats[key].total++;
+      });
+
+      head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>This Week</th><th>This Month</th><th>Total</th></tr>';
       students.filter(s => {
         const matchGrade = grade === 'all' || s.Class === grade;
         const matchSearch = !searchVal ||
@@ -1241,13 +1497,14 @@
           (s.MotherName && s.MotherName.toLowerCase().includes(searchVal));
         return matchGrade && matchSearch && String(s.Status).toLowerCase() === 'active';
       }).forEach(s => {
-        const stats = attSummary[String(s.ID)] || { w:0, m:0 };
+        const stats = studentStats[`${s.Class}_${s.ID}`] || { w:0, m:0, total:0 };
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="font-mono" style="font-size:12px;color:var(--muted)">#${s.ID}</td>
           <td><span class="clickable-name" onclick="openStudentSummary('${s.ID}','${s.Class}')">${s.Name}</span></td>
-          <td><span class="badge ${stats.w > 2 ? 'badge-absent' : 'badge-active'}">${stats.w}d</span></td>
-          <td><span class="badge ${stats.m > 5 ? 'badge-absent' : 'badge-active'}">${stats.m}d</span></td>`;
+          <td><span class="badge ${stats.w >= 2 ? 'badge-absent' : 'badge-active'}">${stats.w}d</span></td>
+          <td><span class="badge ${stats.m >= 4 ? 'badge-absent' : 'badge-active'}">${stats.m}d</span></td>
+          <td><span style="font-family:var(--mono);font-size:12px;color:var(--muted)">${stats.total}</span></td>`;
         fragment.appendChild(tr);
       });
     }
@@ -1322,16 +1579,80 @@
   }
 
   // ════════════════════════════════════
-  // UNPAID FEE FILTER (NEW)
+  // FEE MONTH CONFIG
+  // Base fee: $5 every month.
+  // Extra fees: add any month → extra amount here.
+  // e.g. { 'September': 10, 'January': 8 }
   // ════════════════════════════════════
-  function getUnpaidStudents(grade, term) {
-    if (!grade) return [];
-    const classStudents = students.filter(s =>
-      s.Class === grade && String(s.Status).toLowerCase() === 'active'
-    );
+  const FEE_BASE = 5;
+  const FEE_EXTRA = {
+    // 'September': 10,   // example: back-to-school extra
+    // 'January':   8,    // example: new year extra
+  };
+  const MONTH_NAMES = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December'
+  ];
+
+  function getCurrentMonthName() {
+    return MONTH_NAMES[getEATDate(new Date()).getMonth()];
+  }
+
+  function getFeeForMonth(month) {
+    return FEE_BASE + (FEE_EXTRA[month] || 0);
+  }
+
+  // Set month selects + amount defaults on fee tab open
+  function initFeeTab() {
+    const month = getCurrentMonthName();
+    // Set payment month select
+    const fSession = document.getElementById('fSession');
+    if (fSession) fSession.value = month;
+    // Set unpaid filter month
+    const unpaidTerm = document.getElementById('unpaidTermFilter');
+    if (unpaidTerm) unpaidTerm.value = month;
+    // Set default amount
+    updateFeeAmountFromMonth();
+    // Update banner
+    const due = getFeeForMonth(month);
+    const extra = FEE_EXTRA[month] || 0;
+    document.getElementById('feeMonthLabel').textContent = month + ' ' + getEATDate(new Date()).getFullYear();
+    document.getElementById('feeDueLabel').textContent = '$' + due.toFixed(2) + (extra > 0 ? ` (+$${extra} extra)` : '');
+    // Render unpaid filter with current month
+    renderUnpaidFilter();
+  }
+
+  function updateFeeAmountFromMonth() {
+    const month = document.getElementById('fSession').value;
+    const base = getFeeForMonth(month);
+    document.getElementById('fAmt').value = base.toFixed(2);
+    document.getElementById('fExtraAmt').value = '';
+    updateFeeTotal();
+  }
+
+  function updateFeeTotal() {
+    const base = parseFloat(document.getElementById('fAmt').value) || 0;
+    const extra = parseFloat(document.getElementById('fExtraAmt').value) || 0;
+    document.getElementById('feeTotalVal').textContent = '$' + (base + extra).toFixed(2);
+  }
+
+  // ════════════════════════════════════
+  // UNPAID FILTER — month-based + search
+  // ════════════════════════════════════
+  function getUnpaidStudents(grade, month, searchVal='') {
+    let classStudents = students.filter(s => String(s.Status).toLowerCase() === 'active');
+    if (grade) classStudents = classStudents.filter(s => s.Class === grade);
+    if (searchVal) {
+      const q = searchVal.toLowerCase();
+      classStudents = classStudents.filter(s =>
+        s.Name.toLowerCase().includes(q) ||
+        String(s.ID).includes(q) ||
+        (s.Phone && String(s.Phone).includes(q))
+      );
+    }
     const paidRolls = new Set(
       feeLogs
-        .filter(f => f.class === grade && f.session === term)
+        .filter(f => (!grade || f.class === grade) && f.session === month)
         .map(f => String(f.roll))
     );
     return classStudents.filter(s => !paidRolls.has(String(s.ID)));
@@ -1339,53 +1660,60 @@
 
   function renderUnpaidFilter() {
     const grade = document.getElementById('unpaidClassFilter').value;
-    const term = document.getElementById('unpaidTermFilter').value;
+    const month = document.getElementById('unpaidTermFilter').value;
+    const searchVal = (document.getElementById('unpaidSearch')?.value || '').trim();
     const wrap = document.getElementById('unpaidTableWrap');
     const statsEl = document.getElementById('unpaidStats');
 
-    if (!grade) {
-      wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🎓</div><p>Select a grade to view unpaid students</p></div>';
-      statsEl.style.display = 'none';
-      return;
-    }
+    // Total active students in grade (or all) — unfiltered by search for stats
+    const totalActive = students.filter(s =>
+      String(s.Status).toLowerCase() === 'active' && (!grade || s.Class === grade)
+    ).length;
+    const paidCount = new Set(
+      feeLogs.filter(f => (!grade || f.class === grade) && f.session === month).map(f => String(f.roll))
+    ).size;
+    const unpaidCount = Math.max(0, totalActive - paidCount);
 
-    const unpaid = getUnpaidStudents(grade, term);
-    const total = students.filter(s => s.Class === grade && String(s.Status).toLowerCase() === 'active').length;
-
-    statsEl.style.display = 'block';
+    statsEl.style.display = totalActive > 0 ? 'block' : 'none';
     statsEl.innerHTML = `
-      <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <div style="background:#fee2e2;border-radius:10px;padding:10px 18px;flex:1;min-width:120px">
-          <div style="font-size:22px;font-weight:800;color:#dc2626;font-family:var(--mono)">${unpaid.length}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+        <div style="background:#fee2e2;border-radius:10px;padding:10px 16px;flex:1;min-width:100px">
+          <div style="font-size:22px;font-weight:800;color:#dc2626;font-family:var(--mono)">${unpaidCount}</div>
           <div style="font-size:11px;color:#991b1b;font-weight:700;text-transform:uppercase">Unpaid</div>
         </div>
-        <div style="background:#d1fae5;border-radius:10px;padding:10px 18px;flex:1;min-width:120px">
-          <div style="font-size:22px;font-weight:800;color:#059669;font-family:var(--mono)">${total - unpaid.length}</div>
+        <div style="background:#d1fae5;border-radius:10px;padding:10px 16px;flex:1;min-width:100px">
+          <div style="font-size:22px;font-weight:800;color:#059669;font-family:var(--mono)">${paidCount}</div>
           <div style="font-size:11px;color:#065f46;font-weight:700;text-transform:uppercase">Paid</div>
         </div>
-        <div style="background:#dbeafe;border-radius:10px;padding:10px 18px;flex:1;min-width:120px">
-          <div style="font-size:22px;font-weight:800;color:#2563eb;font-family:var(--mono)">${total}</div>
+        <div style="background:#dbeafe;border-radius:10px;padding:10px 16px;flex:1;min-width:100px">
+          <div style="font-size:22px;font-weight:800;color:#2563eb;font-family:var(--mono)">${totalActive}</div>
           <div style="font-size:11px;color:#1e40af;font-weight:700;text-transform:uppercase">Total</div>
         </div>
       </div>`;
 
+    const unpaid = getUnpaidStudents(grade, month, searchVal);
+
+    if (!grade && !searchVal) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🎓</div><p>Select a grade or search to view unpaid students</p></div>';
+      return;
+    }
+
     if (unpaid.length === 0) {
-      wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🎉</div><p>All students in this grade have paid for ' + term + '!</p></div>';
+      wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">🎉</div><p>${searchVal ? 'No matching unpaid students' : 'All students have paid for ' + month + '!'}</p></div>`;
       return;
     }
 
     let tableHtml = `
       <table>
-        <thead><tr><th>Roll</th><th>Name</th><th>Grade</th><th>Status</th></tr></thead>
+        <thead><tr><th>Roll</th><th>Name</th><th>Grade</th><th>Phone</th><th>Status</th></tr></thead>
         <tbody>`;
     unpaid.forEach(s => {
       tableHtml += `
         <tr>
           <td class="font-mono" style="font-size:12px;color:var(--muted)">#${s.ID}</td>
-          <td><span class="clickable-name" onclick="openStudentSummary('${s.ID}','${s.Class}')">${s.Name}</span>
-            ${isAdmin && s.Phone ? `<div style="font-size:11px;color:var(--muted)">${s.Phone}</div>` : ''}
-          </td>
-          <td style="font-size:12px">${s.Class}</td>
+          <td><span class="clickable-name" onclick="openStudentSummary('${s.ID}','${s.Class}')">${s.Name}</span></td>
+          <td style="font-size:12px;color:var(--muted)">${s.Class}</td>
+          <td style="font-size:12px;color:var(--muted)">${s.Phone || '—'}</td>
           <td><span class="badge badge-unpaid">Unpaid</span></td>
         </tr>`;
     });
@@ -1394,66 +1722,58 @@
   }
 
   // ════════════════════════════════════
-  // EXPORT UNPAID CSV (NEW)
+  // EXPORT UNPAID CSV
   // ════════════════════════════════════
   function exportUnpaidCSV() {
     const grade = document.getElementById('unpaidClassFilter').value;
-    const term = document.getElementById('unpaidTermFilter').value;
-    if (!grade) { msg("Select a grade first", "error"); return; }
-    const unpaid = getUnpaidStudents(grade, term);
+    const month = document.getElementById('unpaidTermFilter').value;
+    const searchVal = (document.getElementById('unpaidSearch')?.value || '').trim();
+    const unpaid = getUnpaidStudents(grade, month, searchVal);
     if (unpaid.length === 0) { msg("No unpaid students to export", "info"); return; }
-    const rows = ['"Roll","Name","Grade","Phone","Term"'];
+    const rows = ['"Roll","Name","Grade","Phone","Month"'];
     unpaid.forEach(s => {
-      rows.push(`"${s.ID}","${s.Name}","${s.Class}","${s.Phone || ''}","${term}"`);
+      rows.push(`"${s.ID}","${s.Name}","${s.Class}","${s.Phone || ''}","${month}"`);
     });
     const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Unpaid_${grade}_${term.replace(' ','')}_${Date.now()}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    link.download = `Unpaid_${grade||'All'}_${month}_${Date.now()}.csv`;
+    document.body.appendChild(link); link.click();
+    document.body.removeChild(link); URL.revokeObjectURL(url);
   }
 
   // ════════════════════════════════════
-  // EXPORT UNPAID PDF (NEW)
+  // EXPORT UNPAID PDF
   // ════════════════════════════════════
   function exportUnpaidPDF() {
     const grade = document.getElementById('unpaidClassFilter').value;
-    const term = document.getElementById('unpaidTermFilter').value;
-    if (!grade) { msg("Select a grade first", "error"); return; }
-    const unpaid = getUnpaidStudents(grade, term);
+    const month = document.getElementById('unpaidTermFilter').value;
+    const searchVal = (document.getElementById('unpaidSearch')?.value || '').trim();
+    const unpaid = getUnpaidStudents(grade, month, searchVal);
     if (unpaid.length === 0) { msg("No unpaid students to export", "info"); return; }
-
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-
     doc.setFillColor(30, 58, 138);
     doc.rect(0, 0, 210, 28, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(16); doc.setFont(undefined, 'bold');
     doc.text('Sool School — Unpaid Fee Report', 14, 11);
     doc.setFontSize(10); doc.setFont(undefined, 'normal');
-    doc.text(`Grade: ${grade} · Term: ${term} · Total Unpaid: ${unpaid.length}`, 14, 20);
+    doc.text(`Grade: ${grade || 'All'} · Month: ${month} · Total Unpaid: ${unpaid.length}`, 14, 20);
     doc.setTextColor(0, 0, 0);
-
-    const rows = unpaid.map(s => [String(s.ID), s.Name, s.Class, s.Phone || '-', term]);
-
+    const rows = unpaid.map(s => [String(s.ID), s.Name, s.Class, s.Phone || '-', month]);
     doc.autoTable({
-      head: [['Roll', 'Name', 'Grade', 'Phone', 'Term']],
-      body: rows,
-      startY: 32, margin: { left: 14, right: 14 },
+      head: [['Roll', 'Name', 'Grade', 'Phone', 'Month']],
+      body: rows, startY: 32, margin: { left: 14, right: 14 },
       headStyles: { fillColor: [220, 38, 38], textColor: 255, fontStyle: 'bold', fontSize: 10 },
       bodyStyles: { fontSize: 9, textColor: [30, 41, 59] },
       alternateRowStyles: { fillColor: [254, 226, 226] },
       styles: { cellPadding: 4 }
     });
-
     doc.setFontSize(8); doc.setTextColor(150);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, doc.internal.pageSize.height - 8);
-    doc.save(`Unpaid_${grade}_${term.replace(' ','')}_${Date.now()}.pdf`);
+    doc.save(`Unpaid_${grade||'All'}_${month}_${Date.now()}.pdf`);
   }
 
   // ════════════════════════════════════
@@ -1561,21 +1881,25 @@
   window.doFee = async () => {
     if (!isAdmin) { msg("Admin access required", "error"); return; }
     const roll = document.getElementById('fRoll').value;
-    const amt = document.getElementById('fAmt').value;
     const name = document.getElementById('fName').value;
     const cls = document.getElementById('fClass').value;
-    if (!roll || !amt || !cls || !name) return msg("Check all fields", "error");
+    const base = parseFloat(document.getElementById('fAmt').value) || 0;
+    const extra = parseFloat(document.getElementById('fExtraAmt').value) || 0;
+    const total = base + extra;
+    const month = document.getElementById('fSession').value;
+    if (!roll || !cls || !name) return msg("Check all fields", "error");
+    if (total <= 0) return msg("Amount must be greater than 0", "error");
     const res = await call('processFee', {
-      student: name, roll, amount: amt,
-      session: document.getElementById('fSession').value,
+      student: name, roll, amount: total,
+      session: month,
       recordedBy: user.username, class: cls
     });
     if (res.success) {
-      msg("Payment Saved ✓");
+      msg(`✓ $${total.toFixed(2)} saved for ${name} — ${month}`);
       document.getElementById('fRoll').value = '';
-      document.getElementById('fAmt').value = '';
       document.getElementById('fName').value = '';
-      // Refresh fee logs and re-render unpaid
+      document.getElementById('fExtraAmt').value = '';
+      updateFeeAmountFromMonth(); // reset to default
       const fData = await call('getFeeLogs', {}, true);
       if (Array.isArray(fData)) feeLogs = fData;
       renderUnpaidFilter();
