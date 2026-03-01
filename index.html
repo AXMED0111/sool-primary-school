@@ -938,33 +938,38 @@
   }
 
   // ════════════════════════════════════
-  // DATE HELPERS (EAT timezone)
+  // DATE HELPERS — EAT = UTC+3
+  // Always derived from UTC so the result is correct regardless of
+  // what timezone the user's device is set to.
   // ════════════════════════════════════
-  function getEATDate(dateObj = new Date()) {
-    const offset = 3;
-    const utc = dateObj.getTime() + dateObj.getTimezoneOffset() * 60000;
-    return new Date(utc + 3600000 * offset);
+  function getEATDate(dateObj) {
+    // Work purely from UTC milliseconds + 3 h offset.
+    // dateObj defaults to right now if not supplied.
+    const base = (dateObj instanceof Date) ? dateObj : (dateObj ? new Date(dateObj) : new Date());
+    const utcMs = base.getTime() + base.getTimezoneOffset() * 60000; // convert to true UTC ms
+    return new Date(utcMs + 3 * 3600000);                            // add exactly +3 h
   }
   function formatISODate(date) {
     const d = getEATDate(date);
-    return d.toISOString().split('T')[0];
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
   }
   function formatTableDate(dateString) {
     if (!dateString) return "-";
     const d = getEATDate(new Date(dateString));
-    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    return `${String(d.getUTCDate()).padStart(2,'0')}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${d.getUTCFullYear()}`;
   }
   function normalizeDateForFilter(dateInput) {
     if (!dateInput) return null;
-    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
-    const eat = getEATDate(d);
-    return `${eat.getFullYear()}-${String(eat.getMonth()+1).padStart(2,'0')}-${String(eat.getDate()).padStart(2,'0')}`;
+    const d = getEATDate(dateInput instanceof Date ? dateInput : new Date(dateInput));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
   }
-  // NEW: get yesterday date
   function getYesterdayISO() {
     const d = getEATDate(new Date());
-    d.setDate(d.getDate() - 1);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    d.setUTCDate(d.getUTCDate() - 1);
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+  }
+  function getCurrentMonthName() {
+    return MONTH_NAMES[getEATDate(new Date()).getUTCMonth()];
   }
 
   // ════════════════════════════════════
@@ -995,10 +1000,10 @@
   }
   function updateHeaderDate() {
     const d = getEATDate(new Date());
-    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     document.getElementById('headerDate').textContent =
-      `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+      `${days[d.getUTCDay()]}, ${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
   }
 
   // ════════════════════════════════════
@@ -1460,20 +1465,21 @@
       // Compute absences per student from attLogs locally
       // Weekend = Friday (day 5). Week = Sat(6)-Thu(4).
       const today = getEATDate(new Date());
-      // Current week: find last Saturday (start of week)
-      const todayDay = today.getDay(); // 0=Sun…6=Sat
-      // Days since last Saturday: if today is Sat(6) → 0, Sun(0) → 1, Mon(1) → 2 … Fri(5) → 6
+      // Current week: find last Saturday (start of week) — use UTC getters on EAT date
+      const todayDay = today.getUTCDay(); // 0=Sun…6=Sat
       const daysSinceSat = (todayDay + 1) % 7; // Sat=0,Sun=1,Mon=2,Tue=3,Wed=4,Thu=5,Fri=6
-      const weekStart = new Date(today); weekStart.setDate(today.getDate() - daysSinceSat); weekStart.setHours(0,0,0,0);
-      // Current month start/end
-      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-      const monthEnd   = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
+      const weekStart = new Date(today);
+      weekStart.setUTCDate(today.getUTCDate() - daysSinceSat);
+      weekStart.setUTCHours(0, 0, 0, 0);
+      // Current month start/end — use UTC on EAT date
+      const monthStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+      const monthEnd   = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0, 23, 59, 59));
 
       // Helper: is a log entry valid (not skipped, in range, not Friday)
       function isValidLog(l) {
         const d = getEATDate(new Date(l.date));
-        if (d.getDay() === 5) return false; // Friday = weekend
-        const monthName = MONTH_NAMES[d.getMonth()];
+        if (d.getUTCDay() === 5) return false; // Friday = weekend
+        const monthName = MONTH_NAMES[d.getUTCMonth()];
         if (skippedMonths.has(monthName)) return false;
         if (fromDate && d < fromDate) return false;
         if (toDate && d > toDate) return false;
@@ -1489,7 +1495,7 @@
         if (!studentStats[key]) studentStats[key] = { w: 0, m: 0, total: 0 };
         const d = getEATDate(new Date(l.date));
         // Week count (Sat–Thu of current week)
-        if (d >= weekStart && d <= today && d.getDay() !== 5) studentStats[key].w++;
+        if (d >= weekStart && d <= today && d.getUTCDay() !== 5) studentStats[key].w++;
         // Month count (current month, unless range overrides)
         const inMonth = fromDate ? (d >= fromDate && d <= (toDate || today)) : (d >= monthStart && d <= monthEnd);
         if (inMonth) studentStats[key].m++;
@@ -1602,10 +1608,6 @@
     'July','August','September','October','November','December'
   ];
 
-  function getCurrentMonthName() {
-    return MONTH_NAMES[getEATDate(new Date()).getMonth()];
-  }
-
   function getFeeForMonth(month) {
     return FEE_BASE + (FEE_EXTRA[month] || 0);
   }
@@ -1624,7 +1626,7 @@
     // Update banner
     const due = getFeeForMonth(month);
     const extra = FEE_EXTRA[month] || 0;
-    document.getElementById('feeMonthLabel').textContent = month + ' ' + getEATDate(new Date()).getFullYear();
+    document.getElementById('feeMonthLabel').textContent = month + ' ' + getEATDate(new Date()).getUTCFullYear();
     document.getElementById('feeDueLabel').textContent = '$' + due.toFixed(2) + (extra > 0 ? ` (+$${extra} extra)` : '');
     // Render unpaid filter with current month
     renderUnpaidFilter();
