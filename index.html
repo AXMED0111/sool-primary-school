@@ -4,903 +4,1572 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sool School Management</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   <style>
-    :root { --primary: #3b82f6; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --info: #0ea5e9; --purple: #8b5cf6; --bg: #f3f4f6; }
+    :root {
+      --primary: #2563eb;
+      --primary-light: #3b82f6;
+      --primary-dark: #1d4ed8;
+      --success: #059669;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --info: #0284c7;
+      --purple: #7c3aed;
+      --bg: #f0f4ff;
+      --sidebar-w: 260px;
+      --card-radius: 16px;
+      --shadow: 0 4px 24px rgba(37,99,235,0.10);
+      --shadow-lg: 0 8px 40px rgba(37,99,235,0.18);
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --muted: #64748b;
+      --surface: #ffffff;
+      --font: 'Sora', sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
     * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family: -apple-system, sans-serif; background: linear-gradient(135deg,#1e3a8a 0%,#3b82f6 100%); min-height: 100vh; padding: 15px; }
-    .container { max-width: 550px; margin: 0 auto; }
-    .card { background: white; border-radius: 16px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); margin-bottom: 20px; }
-    h1 { text-align: center; margin-bottom: 20px; color: #1e293b; }
-    label { display: block; margin: 10px 0 5px; font-weight: 600; color: #4b5563; }
-    input, select { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; margin-bottom: 10px; }
-    .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-success { background: var(--success); color: white; }
-    .btn-danger { background: var(--danger); color: white; }
-    .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 8px; font-size: 12px; }
-    
-    .tabs { display: flex; gap: 5px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
-    .tab-btn { padding: 10px 15px; border: none; border-radius: 6px; background: #e5e7eb; cursor: pointer; font-weight: 600; white-space: nowrap; }
-    .tab-btn.active { background: var(--primary); color: white; }
+    html { font-size: 15px; }
+    body { font-family: var(--font); background: var(--bg); min-height: 100vh; color: var(--text); overflow-x: hidden; }
+
+    /* ══════════════════════════════════════
+       LOADING OVERLAY
+    ══════════════════════════════════════ */
+    .loading-overlay {
+      display: none; position: fixed; top:0; left:0; width:100%; height:100%;
+      background: rgba(255,255,255,0.82); backdrop-filter: blur(4px);
+      z-index: 3000; align-items: center; justify-content: center; flex-direction: column; gap: 12px;
+    }
+    body.loading .loading-overlay { display: flex; }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid #dbeafe;
+      border-top-color: var(--primary); border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    .spinner-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ══════════════════════════════════════
+       LOGIN PAGE
+    ══════════════════════════════════════ */
+    #loginView {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%);
+      padding: 20px;
+    }
+    .login-card {
+      background: white; border-radius: 24px; padding: 48px 40px;
+      width: 100%; max-width: 420px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+      animation: slideUp 0.5s cubic-bezier(0.16,1,0.3,1);
+    }
+    @keyframes slideUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+    .login-logo {
+      text-align: center; margin-bottom: 32px;
+    }
+    .login-logo .school-icon {
+      width: 72px; height: 72px; background: linear-gradient(135deg,#1e3a8a,#3b82f6);
+      border-radius: 20px; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px; font-size: 32px;
+      box-shadow: 0 8px 24px rgba(37,99,235,0.35);
+    }
+    .login-logo h1 { font-size: 26px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
+    .login-logo p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .form-field { margin-bottom: 18px; }
+    .form-field label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+    .form-field input {
+      width: 100%; padding: 13px 16px; border: 2px solid #e2e8f0; border-radius: 10px;
+      font-family: var(--font); font-size: 15px; color: var(--text);
+      transition: border-color 0.2s, box-shadow 0.2s; outline: none; background: #f8fafc;
+    }
+    .form-field input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235,0.1); background: white; }
+    .btn-login {
+      width: 100%; padding: 15px; background: linear-gradient(135deg,#1e3a8a,#3b82f6);
+      color: white; border: none; border-radius: 10px; font-family: var(--font);
+      font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 8px;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 16px rgba(37,99,235,0.35);
+    }
+    .btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(37,99,235,0.45); }
+    .btn-login:active { transform: translateY(0); }
+    #loginMsg { margin-top: 14px; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none; text-align: center; }
+    #loginMsg.success { background: #d1fae5; color: #065f46; }
+    #loginMsg.error { background: #fee2e2; color: #991b1b; }
+
+    /* ══════════════════════════════════════
+       APP LAYOUT — DESKTOP SIDEBAR
+    ══════════════════════════════════════ */
+    #appView { display: none; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      position: fixed; top: 0; left: 0; width: var(--sidebar-w); height: 100vh;
+      background: linear-gradient(180deg, #0f172a 0%, #1e3a8a 100%);
+      display: flex; flex-direction: column; z-index: 100;
+      transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+    }
+    .sidebar-header {
+      padding: 28px 24px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-logo { display: flex; align-items: center; gap: 12px; }
+    .sidebar-logo .logo-icon {
+      width: 40px; height: 40px; background: rgba(255,255,255,0.15);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .sidebar-logo h2 { color: white; font-size: 17px; font-weight: 800; letter-spacing: -0.3px; }
+    .sidebar-logo p { color: rgba(255,255,255,0.5); font-size: 11px; margin-top: 1px; text-transform: uppercase; letter-spacing: 0.8px; }
+
+    .sidebar-user {
+      padding: 16px 24px; display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .user-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg,#60a5fa,#a78bfa);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 14px; color: white; flex-shrink: 0;
+    }
+    .user-info { overflow: hidden; }
+    .user-name { color: white; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-role { color: rgba(255,255,255,0.45); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; }
+
+    .sidebar-nav { flex: 1; padding: 16px 14px; overflow-y: auto; }
+    .nav-section-label { color: rgba(255,255,255,0.3); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; padding: 12px 10px 6px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px; padding: 11px 12px;
+      border-radius: 10px; cursor: pointer; color: rgba(255,255,255,0.65);
+      font-size: 14px; font-weight: 500; transition: all 0.18s;
+      margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left; font-family: var(--font);
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.08); color: white; }
+    .nav-item.active { background: rgba(255,255,255,0.15); color: white; font-weight: 600; }
+    .nav-item .nav-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; background: rgba(255,255,255,0.08); }
+    .nav-item.active .nav-icon { background: rgba(255,255,255,0.2); }
+
+    .sidebar-footer { padding: 16px 14px; border-top: 1px solid rgba(255,255,255,0.08); }
+    .btn-logout {
+      width: 100%; padding: 11px; border: 1px solid rgba(255,255,255,0.15);
+      background: transparent; border-radius: 10px; color: rgba(255,255,255,0.6);
+      font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.18s;
+    }
+    .btn-logout:hover { background: rgba(220,38,38,0.2); border-color: rgba(220,38,38,0.4); color: #fca5a5; }
+
+    /* Main content area */
+    .main {
+      margin-left: var(--sidebar-w);
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+    }
+    .main-header {
+      background: white; border-bottom: 1px solid var(--border);
+      padding: 18px 32px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50; box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+    }
+    .main-header h2 { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
+    .main-header p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .header-date { font-family: var(--mono); font-size: 13px; color: var(--muted); background: var(--bg); padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); }
+
+    .mobile-menu-btn {
+      display: none; background: none; border: none; cursor: pointer;
+      font-size: 22px; color: var(--text); padding: 4px;
+    }
+
+    .main-content { padding: 28px 32px; flex: 1; }
+    #appMsg { margin-bottom: 16px; padding: 12px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; display: none; animation: slideDown 0.2s ease; }
+    @keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+    #appMsg.success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+    #appMsg.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    #appMsg.info { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+
+    /* Tab content areas */
     .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    .message { padding: 12px; border-radius: 8px; margin: 10px 0; text-align: center; display: none; font-weight: 600; }
-    
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-    .stat-card { padding: 15px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; text-align: center; }
-    .stat-val { font-size: 24px; font-weight: 800; color: var(--primary); }
-    .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; }
+    .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
-    .table-container { overflow-x: auto; margin-top: 10px; border: 1px solid #e5e7eb; border-radius: 8px; max-height: 400px; }
+    /* ══════════════════════════════════════
+       CARDS & PANELS
+    ══════════════════════════════════════ */
+    .panel {
+      background: white; border-radius: var(--card-radius); border: 1px solid var(--border);
+      box-shadow: var(--shadow); padding: 24px; margin-bottom: 20px;
+    }
+    .panel-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .panel-title .icon { font-size: 18px; }
+    .panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .panel-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+    /* Stats cards */
+    .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+    .stat-card {
+      background: white; border-radius: var(--card-radius); border: 1px solid var(--border);
+      padding: 20px 24px; box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 16px;
+    }
+    .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .stat-icon.blue { background: #dbeafe; }
+    .stat-icon.green { background: #d1fae5; }
+    .stat-icon.red { background: #fee2e2; }
+    .stat-icon.yellow { background: #fef3c7; }
+    .stat-val { font-size: 28px; font-weight: 800; color: var(--text); font-family: var(--mono); line-height: 1; }
+    .stat-label { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; margin-top: 4px; }
+
+    /* ══════════════════════════════════════
+       FORM ELEMENTS
+    ══════════════════════════════════════ */
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 11px 14px; border: 2px solid #e2e8f0; border-radius: 10px;
+      font-family: var(--font); font-size: 14px; color: var(--text);
+      transition: border-color 0.2s, box-shadow 0.2s; outline: none; background: #f8fafc;
+      appearance: none;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 4px rgba(37,99,235,0.1); background: white;
+    }
+    .field input[readonly] { background: #f1f5f9; color: var(--muted); cursor: default; }
+    .field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236B7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 11px 20px; border: none; border-radius: 10px;
+      font-family: var(--font); font-size: 14px; font-weight: 700; cursor: pointer;
+      transition: all 0.18s; text-decoration: none; white-space: nowrap;
+    }
+    .btn-primary { background: var(--primary); color: white; box-shadow: 0 2px 12px rgba(37,99,235,0.3); }
+    .btn-primary:hover { background: var(--primary-dark); box-shadow: 0 4px 18px rgba(37,99,235,0.4); transform: translateY(-1px); }
+    .btn-success { background: var(--success); color: white; box-shadow: 0 2px 12px rgba(5,150,105,0.3); }
+    .btn-success:hover { background: #047857; transform: translateY(-1px); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-outline { background: white; border: 2px solid var(--border); color: var(--text); }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: #eff6ff; }
+    .btn-sm { padding: 7px 14px; font-size: 12px; border-radius: 8px; }
+    .btn-full { width: 100%; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--bg); }
+
+    /* ══════════════════════════════════════
+       ATTENDANCE TAB
+    ══════════════════════════════════════ */
+    .att-status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .att-btn {
+      padding: 14px; border: 2px solid #e2e8f0; background: white; border-radius: 12px;
+      cursor: pointer; font-weight: 700; text-align: center; font-family: var(--font);
+      font-size: 14px; transition: all 0.18s; color: var(--muted);
+    }
+    .att-btn:hover { border-color: currentColor; }
+    .att-btn.present.active { background: #d1fae5; border-color: var(--success); color: var(--success); }
+    .att-btn.absent.active { background: #fee2e2; border-color: var(--danger); color: var(--danger); }
+    .att-btn.late.active { background: #fef3c7; border-color: var(--warning); color: var(--warning); }
+    .att-btn.sick.active { background: #ede9fe; border-color: var(--purple); color: var(--purple); }
+
+    .preview-box {
+      background: #f8fafc; border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; max-height: 160px; overflow-y: auto; font-size: 12px;
+    }
+    .preview-box .preview-header { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+    .preview-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #f1f5f9; font-size: 12px; color: var(--text); }
+    .preview-row:last-child { border-bottom: none; }
+    .preview-id { font-family: var(--mono); font-size: 11px; color: var(--muted); min-width: 28px; }
+
+    /* ══════════════════════════════════════
+       RECORDS TABLE
+    ══════════════════════════════════════ */
+    .table-toolbar {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+    }
+    .table-toolbar .search-wrap { position: relative; flex: 1; min-width: 180px; }
+    .table-toolbar .search-wrap input { padding-left: 36px; }
+    .table-toolbar .search-wrap::before { content: '🔍'; position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 14px; pointer-events: none; }
+    .table-toolbar select, .table-toolbar input[type="date"] {
+      padding: 9px 12px; border: 2px solid #e2e8f0; border-radius: 10px;
+      font-family: var(--font); font-size: 13px; color: var(--text); outline: none;
+      background: #f8fafc; transition: border-color 0.2s;
+    }
+    .table-toolbar select:focus, .table-toolbar input[type="date"]:focus {
+      border-color: var(--primary);
+    }
+    .export-btns { display: flex; gap: 8px; }
+
+    .quick-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .q-btn {
+      padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+      background: white; font-size: 12px; font-weight: 600; cursor: pointer;
+      font-family: var(--font); color: var(--muted); transition: all 0.15s; white-space: nowrap;
+    }
+    .q-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .q-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+    .table-wrap { overflow: auto; border-radius: 12px; border: 1px solid var(--border); max-height: 500px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { background: #f9fafb; padding: 10px; text-align: left; border-bottom: 2px solid #e5e7eb; position: sticky; top: 0; }
-    td { padding: 10px; border-bottom: 1px solid #f3f4f6; }
-    
-    .clickable-name { color: var(--primary); font-weight: 600; cursor: pointer; text-decoration: underline; }
-    
-    .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
-    .badge-absent { background: var(--danger); color: white; }
-    .badge-sick { background: var(--purple); color: white; }
-    .badge-late { background: var(--warning); color: white; }
-    .badge-present { background: var(--success); color: white; }
-    .badge-active { background: var(--success); color: white; }
-    .badge-dropout { background: #64748b; color: white; }
-    .badge-inactive { background: var(--warning); color: white; }
+    thead th {
+      background: #f8fafc; padding: 12px 14px; text-align: left;
+      border-bottom: 2px solid var(--border); font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted);
+      position: sticky; top: 0; z-index: 2; white-space: nowrap;
+    }
+    tbody td { padding: 12px 14px; border-bottom: 1px solid #f8fafc; vertical-align: middle; }
+    tbody tr:hover { background: #f8fafc; }
+    tbody tr:last-child td { border-bottom: none; }
+    .clickable-name {
+      color: var(--primary); font-weight: 600; cursor: pointer;
+      text-decoration: none; transition: color 0.15s;
+    }
+    .clickable-name:hover { color: var(--primary-dark); text-decoration: underline; }
 
-    .session-indicator { padding: 1px 4px; border-radius: 3px; font-weight: bold; font-size: 10px; margin-right: 2px; color: white; }
-    .sess-m { background: #2563eb; } 
+    /* Badges */
+    .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-absent { background: #fee2e2; color: #991b1b; }
+    .badge-sick { background: #ede9fe; color: #5b21b6; }
+    .badge-late { background: #fef3c7; color: #92400e; }
+    .badge-present { background: #d1fae5; color: #065f46; }
+    .badge-active { background: #d1fae5; color: #065f46; }
+    .badge-dropout { background: #f1f5f9; color: #475569; }
+    .badge-inactive { background: #fef3c7; color: #92400e; }
+    .badge-unpaid { background: #fee2e2; color: #991b1b; }
+    .badge-paid { background: #d1fae5; color: #065f46; }
+
+    .session-indicator { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 6px; font-weight: 800; font-size: 10px; color: white; margin-right: 2px; }
+    .sess-m { background: #2563eb; }
     .sess-b { background: #f97316; }
 
-    .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 20px; }
-    .modal-content { background: white; border-radius: 16px; width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto; padding: 25px; position: relative; }
-    .close-modal { position: absolute; right: 20px; top: 20px; font-size: 24px; cursor: pointer; color: #64748b; }
+    /* ══════════════════════════════════════
+       MODAL
+    ══════════════════════════════════════ */
+    .modal {
+      display: none; position: fixed; z-index: 2000; inset: 0;
+      background: rgba(15,23,42,0.6); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal.open { display: flex; }
+    .modal-content {
+      background: white; border-radius: 20px; width: 100%; max-width: 480px;
+      max-height: 92vh; overflow-y: auto; padding: 32px;
+      position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      animation: modalIn 0.25s cubic-bezier(0.16,1,0.3,1);
+    }
+    @keyframes modalIn { from { opacity:0; transform:scale(0.95) translateY(20px); } to { opacity:1; transform:none; } }
+    .modal-close {
+      position: absolute; right: 20px; top: 20px; width: 32px; height: 32px;
+      border-radius: 8px; border: none; background: #f1f5f9; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; color: var(--muted); transition: all 0.15s;
+    }
+    .modal-close:hover { background: #fee2e2; color: var(--danger); }
+    .modal-name { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+    .modal-meta { margin-bottom: 16px; }
+    .summary-pills { display: flex; gap: 10px; margin-bottom: 16px; }
+    .summary-pill { flex: 1; text-align: center; background: #f8fafc; border-radius: 10px; padding: 12px 8px; border: 1px solid var(--border); }
+    .summary-pill .pval { font-size: 22px; font-weight: 800; color: var(--text); font-family: var(--mono); }
+    .summary-pill .plabel { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 700; margin-top: 2px; }
+    .history-list { list-style: none; max-height: 260px; overflow-y: auto; }
+    .history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f8fafc; font-size: 13px; }
+    .history-item:last-child { border-bottom: none; }
 
-    .quick-filters { display: flex; gap: 5px; overflow-x: auto; padding: 5px 0; margin-bottom: 10px; }
-    .q-btn { padding: 6px 10px; border-radius: 20px; border: 1px solid #cbd5e1; background: white; font-size: 11px; white-space: nowrap; cursor: pointer; }
-    .q-btn.active { background: #1e293b; color: white; border-color: #1e293b; }
+    /* ══════════════════════════════════════
+       FEE TAB — UNPAID FILTER
+    ══════════════════════════════════════ */
+    .fee-filter-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: center; }
+    .unpaid-table-wrap { overflow: auto; border-radius: 12px; border: 1px solid var(--border); max-height: 400px; }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
 
-    .att-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
-    .att-btn { padding: 12px; border: 1px solid #e5e7eb; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; text-align: center;}
-    .att-btn.present.active { background: var(--success); color: white; }
-    .att-btn.absent.active { background: var(--danger); color: white; }
-    .att-btn.late.active { background: var(--warning); color: white; }
-    .att-btn.sick.active { background: var(--purple); color: white; }
-    
-    .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 3000; align-items: center; justify-content: center;}
-    body.loading .loading-overlay { display: flex; }
-    
-    .search-box { position: relative; margin-bottom: 10px; }
-    .search-box input { padding-left: 35px; }
-    .search-box::before { content: '🔍'; position: absolute; left: 10px; top: 12px; font-size: 16px; }
-    
-    /* Admin-only info styling */
-    .admin-only { display: none; }
-    body.is-admin .admin-only { display: block; }
-    body.is-admin .admin-only-inline { display: inline; }
-    
-    /* Optimized preview list styling */
-    #previewList { font-size: 12px; }
-    #previewList div { padding: 4px 0; border-bottom: 1px solid #f0f0f0; }
-    #previewList div:last-child { border-bottom: none; }
+    /* ══════════════════════════════════════
+       MOBILE OVERLAY SIDEBAR TOGGLE
+    ══════════════════════════════════════ */
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 99; backdrop-filter: blur(2px);
+    }
+
+    /* ══════════════════════════════════════
+       RESPONSIVE — MOBILE
+    ══════════════════════════════════════ */
+    @media (max-width: 900px) {
+      :root { --sidebar-w: 260px; }
+      .sidebar {
+        transform: translateX(-100%);
+        box-shadow: var(--shadow-lg);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.open { display: block; }
+      .main { margin-left: 0; }
+      .mobile-menu-btn { display: block; }
+      .main-content { padding: 16px; }
+      .main-header { padding: 14px 16px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .stat-card { padding: 14px 16px; }
+      .stat-val { font-size: 22px; }
+      .panel { padding: 16px; }
+      .panel-grid { grid-template-columns: 1fr; }
+      .panel-grid-3 { grid-template-columns: 1fr; }
+      .table-toolbar { flex-direction: column; align-items: stretch; }
+      .table-toolbar .search-wrap { min-width: auto; }
+      .export-btns { justify-content: flex-end; }
+    }
+    @media (max-width: 560px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .stat-icon { width: 38px; height: 38px; font-size: 18px; }
+    }
+    @media (min-width: 1400px) {
+      .main-content { max-width: 1200px; }
+    }
+
+    /* ══════════════════════════════════════
+       ADMIN-ONLY
+    ══════════════════════════════════════ */
+    .admin-only { display: none !important; }
+    body.is-admin .admin-only { display: block !important; }
+    body.is-admin .admin-only-flex { display: flex !important; }
+    body.is-admin .admin-only-inline { display: inline !important; }
+
+    /* ══════════════════════════════════════
+       MISC HELPERS
+    ══════════════════════════════════════ */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .text-muted { color: var(--muted); }
+    .text-small { font-size: 11px; }
+    .font-mono { font-family: var(--mono); }
+    hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
 </head>
 <body>
 
-  <div class="loading-overlay"><b>Processing...</b></div>
+  <div class="loading-overlay">
+    <div class="spinner"></div>
+    <div class="spinner-label">Processing...</div>
+  </div>
 
-  <!-- Student Summary Modal -->
+  <!-- ════════════════════════════════
+       STUDENT SUMMARY MODAL
+  ════════════════════════════════ -->
   <div id="studentModal" class="modal">
     <div class="modal-content">
-      <span class="close-modal" onclick="closeModal()">&times;</span>
-      <h2 id="modalName">Student Name</h2>
-      <div id="modalMeta" style="margin-bottom: 15px;"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="modal-name" id="modalName">Student Name</div>
+      <div class="modal-meta" id="modalMeta"></div>
       <hr>
-      <div style="margin-top: 15px;">
-        <h4 style="margin-bottom: 10px; color: #4b5563;">Attendance History (Absences/Sick/Late)</h4>
-        <div id="modalHistory" style="font-size: 13px;"></div>
-      </div>
+      <h4 style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">Attendance History</h4>
+      <div class="summary-pills" id="modalPills"></div>
+      <div id="modalHistory"></div>
     </div>
   </div>
 
-  <div class="container" id="loginView">
-    <div class="card">
-      <h1>🏫 Sool School</h1>
+  <!-- ════════════════════════════════
+       LOGIN VIEW
+  ════════════════════════════════ -->
+  <div id="loginView">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="school-icon">🏫</div>
+        <h1>Sool School</h1>
+        <p>Management System</p>
+      </div>
       <form id="loginForm">
-        <label>Username</label>
-        <input type="text" id="user" placeholder="Username" required>
-        <label>Password</label>
-        <input type="password" id="pass" placeholder="••••••••" required>
-        <button type="submit" class="btn btn-primary">Login</button>
+        <div class="form-field">
+          <label>Username</label>
+          <input type="text" id="user" placeholder="Enter username" required autocomplete="username">
+        </div>
+        <div class="form-field">
+          <label>Password</label>
+          <input type="password" id="pass" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn-login">Sign In →</button>
       </form>
-      <div id="loginMsg" class="message"></div>
+      <div id="loginMsg"></div>
     </div>
   </div>
 
-  <div class="container" id="appView" style="display:none">
-    <div class="card">
-      <div style="text-align:center; margin-bottom:15px">
-        <h2 id="greet">Dashboard</h2>
-        <small id="roleDisplay" style="color:#666; text-transform:uppercase"></small>
-      </div>
+  <!-- ════════════════════════════════
+       APP VIEW
+  ════════════════════════════════ -->
+  <div id="appView">
 
-      <div class="tabs" id="nav">
-        <button class="tab-btn active" onclick="showTab('att')">Attendance</button>
-        <button class="tab-btn" onclick="showTab('list')">Records</button>
-        <button class="tab-btn" onclick="showTab('stats')">Status</button>
-      </div>
+    <!-- Sidebar overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
-      <div id="appMsg" class="message"></div>
-
-      <!-- Attendance Tab -->
-      <div id="attTab" class="tab-content active">
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px">
-          <div><label>Date</label><input type="date" id="attDate"></div>
-          <div><label>Session</label>
-            <select id="attSession">
-              <option value="Morning">Morning (M)</option>
-              <option value="After Break">After Break (B)</option>
-            </select>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="logo-icon">🏫</div>
+          <div>
+            <h2>Sool School</h2>
+            <p>Management</p>
           </div>
         </div>
-        <label>Grade Level</label>
-        <select id="attClass" onchange="handleClassChange('att')">
-          <option value="">-- Select --</option>
-          <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
-          <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
-          <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
-          <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
-        </select>
-        
-        <div id="previewList" style="display:none; background:#f9fafb; padding:10px; border-radius:8px; margin: 15px 0; max-height:150px; overflow-y:auto; border:1px solid #eee"></div>
-        <button id="batchBtn" class="btn btn-success" style="display:none; margin-bottom:15px" onclick="markAllPresent()">Mark Class Present</button>
-        
-        <hr>
-        <label style="margin-top:15px">Roll #</label>
-        <input type="number" id="rollId" placeholder="Enter Roll #" oninput="lookupStudent('att')">
-        <input type="text" id="rollName" readonly style="background:#f3f4f6" placeholder="Name Result">
-        
-        <div class="att-btn-grid">
-          <div class="att-btn present active" onclick="setAttStatus(this, 'present')">Present</div>
-          <div class="att-btn absent" onclick="setAttStatus(this, 'absent')">Absent</div>
-          <div class="att-btn late" onclick="setAttStatus(this, 'late')">Late</div>
-          <div class="att-btn sick" onclick="setAttStatus(this, 'sick')">Sick</div>
-        </div>
-        <button class="btn btn-primary" onclick="saveOne()">Save Entry</button>
       </div>
 
-      <!-- Records Tab -->
-      <div id="listTab" class="tab-content">
-        <div style="margin-bottom:15px">
-          <label>View Mode</label>
-          <select id="recordMode" onchange="resetFilters(); renderRecords()">
-            <option value="students">Student List (Full)</option>
-            <option value="absent" selected>Absent/Sick/Late History</option>
-            <option value="summary">Weekly/Monthly Summary</option>
-          </select>
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar">S</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebarName">User</div>
+          <div class="user-role" id="sidebarRole">Role</div>
         </div>
+      </div>
 
-        <div id="quickFilterContainer">
-          <label style="font-size: 11px; margin-bottom: 2px;">Quick View (Today):</label>
-          <div class="quick-filters" id="gradeQuickFilters">
-             <button class="q-btn" onclick="applyQuickFilter('1aad')">G1</button>
-             <button class="q-btn" onclick="applyQuickFilter('2aad')">G2</button>
-             <button class="q-btn" onclick="applyQuickFilter('3aad')">G3</button>
-             <button class="q-btn" onclick="applyQuickFilter('4aad')">G4</button>
-             <button class="q-btn" onclick="applyQuickFilter('5aad')">G5</button>
-             <button class="q-btn" onclick="applyQuickFilter('6aad')">G6</button>
-             <button class="q-btn" onclick="applyQuickFilter('7aad')">G7</button>
-             <button class="q-btn" onclick="applyQuickFilter('8aad')">G8</button>
-          </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <button class="nav-item active" onclick="showTab('att')" id="nav-att">
+          <span class="nav-icon">📋</span> Attendance
+        </button>
+        <button class="nav-item" onclick="showTab('list')" id="nav-list">
+          <span class="nav-icon">📂</span> Records
+        </button>
+        <button class="nav-item" onclick="showTab('stats')" id="nav-stats">
+          <span class="nav-icon">📊</span> Status
+        </button>
+        <div class="nav-section-label admin-only" style="display:none">Admin</div>
+        <button class="nav-item admin-only" onclick="showTab('reg')" id="nav-reg" style="display:none">
+          <span class="nav-icon">✏️</span> Registration
+        </button>
+        <button class="nav-item admin-only" onclick="showTab('fee')" id="nav-fee" style="display:none">
+          <span class="nav-icon">💰</span> Fees
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn-logout" onclick="doLogout()">🚪 Sign Out</button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main">
+      <header class="main-header">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        <div>
+          <h2 id="pageTitle">Attendance</h2>
+          <p id="pageSubtitle" style="font-size:12px;color:var(--muted);margin-top:2px">Mark daily attendance</p>
         </div>
+        <div class="header-date" id="headerDate"></div>
+      </header>
 
-        <div id="filterSection">
-            <div class="search-box">
-              <input type="text" id="searchFilter" placeholder="Search by name, phone, or mother..." oninput="debouncedRenderRecords()">
+      <div class="main-content">
+        <div id="appMsg" class="message"></div>
+
+        <!-- ── ATTENDANCE TAB ── -->
+        <div id="attTab" class="tab-content active">
+          <div class="panel">
+            <div class="panel-title"><span class="icon">⚙️</span> Session Setup</div>
+            <div class="panel-grid">
+              <div class="field">
+                <label>Date</label>
+                <input type="date" id="attDate">
+              </div>
+              <div class="field">
+                <label>Session</label>
+                <select id="attSession">
+                  <option value="Morning">Morning (M)</option>
+                  <option value="After Break">After Break (B)</option>
+                </select>
+              </div>
             </div>
-            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px">
-              <select id="listFilter" onchange="renderRecords()" style="flex:1">
+            <div class="field">
+              <label>Grade Level</label>
+              <select id="attClass" onchange="handleClassChange('att')">
+                <option value="">-- Select Grade --</option>
+                <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
+                <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
+                <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
+                <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
+              </select>
+            </div>
+            <div id="previewContainer" style="display:none">
+              <div class="preview-box" id="previewList"></div>
+              <button id="batchBtn" class="btn btn-success btn-full" style="margin-top:10px" onclick="markAllPresent()">
+                ✅ Mark Entire Class Present
+              </button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title"><span class="icon">✏️</span> Mark Individual</div>
+            <div class="panel-grid">
+              <div class="field">
+                <label>Roll #</label>
+                <input type="number" id="rollId" placeholder="Enter Roll #" oninput="lookupStudent('att')">
+              </div>
+              <div class="field">
+                <label>Student Name</label>
+                <input type="text" id="rollName" readonly placeholder="Auto-filled">
+              </div>
+            </div>
+            <div class="field">
+              <label>Status</label>
+              <div class="att-status-grid">
+                <div class="att-btn present active" onclick="setAttStatus(this,'present')">✓ Present</div>
+                <div class="att-btn absent" onclick="setAttStatus(this,'absent')">✗ Absent</div>
+                <div class="att-btn late" onclick="setAttStatus(this,'late')">⏰ Late</div>
+                <div class="att-btn sick" onclick="setAttStatus(this,'sick')">🤒 Sick</div>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="saveOne()">Save Entry</button>
+          </div>
+        </div>
+
+        <!-- ── RECORDS TAB ── -->
+        <div id="listTab" class="tab-content">
+          <div class="panel">
+            <div class="table-toolbar">
+              <div style="min-width:180px">
+                <select id="recordMode" onchange="resetFilters(); renderRecords()">
+                  <option value="students">Student List (Full)</option>
+                  <option value="absent" selected>Absent/Sick/Late History</option>
+                  <option value="summary">Weekly/Monthly Summary</option>
+                </select>
+              </div>
+              <div class="search-wrap">
+                <input type="text" id="searchFilter" placeholder="Search by name, phone, or mother..." oninput="debouncedRenderRecords()">
+              </div>
+              <select id="listFilter" onchange="renderRecords()">
                 <option value="all">All Grades</option>
                 <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
                 <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
                 <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
                 <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
               </select>
-              <input type="date" id="dateFilter" onchange="renderRecords()" style="flex:1">
-              <select id="sessionFilter" onchange="renderRecords()" style="flex:1">
+              <input type="date" id="dateFilter" onchange="renderRecords()">
+              <select id="sessionFilter" onchange="renderRecords()">
                 <option value="all">All Sessions</option>
                 <option value="Morning">Morning</option>
                 <option value="After Break">After Break</option>
               </select>
+              <div class="export-btns admin-only" style="display:none">
+                <button class="btn btn-sm btn-ghost" onclick="exportCSV()">📥 CSV</button>
+                <button class="btn btn-sm btn-ghost" onclick="exportPDF()">📄 PDF</button>
+              </div>
             </div>
+
+            <div id="quickFilterContainer" style="display:none">
+              <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">Quick View (Yesterday):</div>
+              <div class="quick-filters">
+                <button class="q-btn" onclick="applyQuickFilter('1aad')">G1</button>
+                <button class="q-btn" onclick="applyQuickFilter('2aad')">G2</button>
+                <button class="q-btn" onclick="applyQuickFilter('3aad')">G3</button>
+                <button class="q-btn" onclick="applyQuickFilter('4aad')">G4</button>
+                <button class="q-btn" onclick="applyQuickFilter('5aad')">G5</button>
+                <button class="q-btn" onclick="applyQuickFilter('6aad')">G6</button>
+                <button class="q-btn" onclick="applyQuickFilter('7aad')">G7</button>
+                <button class="q-btn" onclick="applyQuickFilter('8aad')">G8</button>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table id="recordTable">
+                <thead id="recordHead"></thead>
+                <tbody id="recordBody"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
-        <button class="btn btn-outline admin-only" style="margin-bottom: 10px; width: auto; font-size: 11px;" onclick="exportCSV()">📥 Download CSV</button>
-
-        <div class="table-container">
-          <table id="recordTable">
-            <thead id="recordHead"></thead>
-            <tbody id="recordBody"></tbody>
-          </table>
+        <!-- ── STATUS TAB ── -->
+        <div id="statsTab" class="tab-content">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon blue">🎓</div>
+              <div><div class="stat-val" id="statTotal">0</div><div class="stat-label">Total Students</div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon green">✅</div>
+              <div><div class="stat-val" id="statActive">0</div><div class="stat-label">Active</div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon red">⛔</div>
+              <div><div class="stat-val" id="statDropout" style="color:var(--danger)">0</div><div class="stat-label">Dropouts</div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon yellow">⏸️</div>
+              <div><div class="stat-val" id="statInactive" style="color:var(--warning)">0</div><div class="stat-label">Inactive</div></div>
+            </div>
+          </div>
+          <div class="panel">
+            <button class="btn btn-primary" onclick="refreshData(true)">🔄 Sync All Records</button>
+          </div>
         </div>
-      </div>
 
-      <!-- Stats Tab -->
-      <div id="statsTab" class="tab-content">
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-val" id="statTotal">0</div><div class="stat-label">Total Students</div></div>
-          <div class="stat-card"><div class="stat-val" id="statActive">0</div><div class="stat-label">Active</div></div>
-          <div class="stat-card"><div class="stat-val" id="statDropout" style="color:var(--danger)">0</div><div class="stat-label">Dropouts</div></div>
-          <div class="stat-card"><div class="stat-val" id="statInactive" style="color:var(--warning)">0</div><div class="stat-label">Inactive</div></div>
+        <!-- ── REGISTRATION TAB (Admin) ── -->
+        <div id="regTab" class="tab-content">
+          <div class="panel">
+            <div class="panel-title"><span class="icon">✏️</span> New Student Registration</div>
+            <div class="panel-grid">
+              <div class="field"><label>Full Name</label><input type="text" id="rName" placeholder="Student full name"></div>
+              <div class="field"><label>Mother's Name</label><input type="text" id="rMother" placeholder="Mother's full name"></div>
+            </div>
+            <div class="panel-grid">
+              <div class="field"><label>Date of Birth</label><input type="date" id="rDob"></div>
+              <div class="field"><label>Place of Birth</label><input type="text" id="rPob" placeholder="City or region"></div>
+            </div>
+            <div class="panel-grid">
+              <div class="field"><label>Phone</label><input type="text" id="rPhone" placeholder="+252..."></div>
+              <div class="field"><label>Transfer From</label><input type="text" id="rTransfer" placeholder="Previous school"></div>
+            </div>
+            <div class="panel-grid">
+              <div class="field">
+                <label>Grade</label>
+                <select id="rClass">
+                  <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
+                  <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
+                  <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
+                  <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Status</label>
+                <select id="rStatus">
+                  <option value="active">Active</option>
+                  <option value="dropout">Dropout</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="doRegister()">Complete Registration</button>
+          </div>
         </div>
-        <button class="btn btn-primary" onclick="refreshData(true)">🔄 Sync All Records</button>
-      </div>
 
-      <!-- Registration Tab (Admin Only) -->
-      <div id="regTab" class="tab-content">
-        <h3>Registration</h3>
-        <label>Full Name</label><input type="text" id="rName">
-        <label>Mother's Name</label><input type="text" id="rMother">
-        <label>DOB</label><input type="date" id="rDob">
-        <label>POB (Place of Birth)</label><input type="text" id="rPob">
-        <label>Phone</label><input type="text" id="rPhone">
-        <label>Transfer From</label><input type="text" id="rTransfer">
-        <label>Grade</label>
-        <select id="rClass">
-          <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option><option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
-          <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
-          <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
-        </select>
-        <label>Status</label>
-        <select id="rStatus"><option value="active">Active</option><option value="dropout">Dropout</option><option value="inactive">Inactive</option></select>
-        <button class="btn btn-primary" onclick="doRegister()">Complete Registration</button>
-      </div>
+        <!-- ── FEES TAB (Admin) ── -->
+        <div id="feeTab" class="tab-content">
+          <div class="panel">
+            <div class="panel-title"><span class="icon">💰</span> Record Payment</div>
+            <div class="panel-grid">
+              <div class="field">
+                <label>Grade</label>
+                <select id="fClass" onchange="lookupStudent('fee')">
+                  <option value="">-- Select Grade --</option>
+                  <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
+                  <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
+                  <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
+                  <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Roll #</label>
+                <input type="number" id="fRoll" oninput="lookupStudent('fee')" placeholder="Roll number">
+              </div>
+            </div>
+            <div class="panel-grid">
+              <div class="field">
+                <label>Student Name</label>
+                <input type="text" id="fName" readonly placeholder="Auto-filled from Roll #">
+              </div>
+              <div class="field">
+                <label>Amount ($)</label>
+                <input type="number" id="fAmt" placeholder="0.00">
+              </div>
+            </div>
+            <div class="field">
+              <label>Term</label>
+              <select id="fSession">
+                <option value="Term 1">Term 1</option>
+                <option value="Term 2">Term 2</option>
+              </select>
+            </div>
+            <button class="btn btn-success btn-full" onclick="doFee()">Save Payment</button>
+          </div>
 
-      <!-- Fee Tab (Admin Only) -->
-      <div id="feeTab" class="tab-content">
-        <h3>Fees</h3>
-        <label>Grade</label>
-        <select id="fClass" onchange="lookupStudent('fee')">
-          <option value="">-- Select --</option>
-          <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
-          <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
-          <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
-          <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
-        </select>
-        <label>Roll #</label><input type="number" id="fRoll" oninput="lookupStudent('fee')">
-        <input type="text" id="fName" readonly style="background:#eee" placeholder="Student Name">
-        <label>Amount ($)</label><input type="number" id="fAmt">
-        <label>Term</label>
-        <select id="fSession"><option value="Term 1">Term 1</option><option value="Term 2">Term 2</option></select>
-        <button class="btn btn-success" onclick="doFee()">Save Payment</button>
-      </div>
+          <!-- NEW: Unpaid Fee Filter Section -->
+          <div class="panel">
+            <div class="panel-title"><span class="icon">🔍</span> Unpaid Fee Filter</div>
+            <div class="fee-filter-bar">
+              <div class="field" style="margin:0;flex:1">
+                <select id="unpaidClassFilter" onchange="renderUnpaidFilter()">
+                  <option value="">-- Select Grade to Filter --</option>
+                  <option value="1aad">Grade 1</option><option value="2aad">Grade 2</option>
+                  <option value="3aad">Grade 3</option><option value="4aad">Grade 4</option>
+                  <option value="5aad">Grade 5</option><option value="6aad">Grade 6</option>
+                  <option value="7aad">Grade 7</option><option value="8aad">Grade 8</option>
+                </select>
+              </div>
+              <div class="field" style="margin:0;flex:1">
+                <select id="unpaidTermFilter" onchange="renderUnpaidFilter()">
+                  <option value="Term 1">Term 1</option>
+                  <option value="Term 2">Term 2</option>
+                </select>
+              </div>
+              <div class="export-btns">
+                <button class="btn btn-sm btn-ghost" onclick="exportUnpaidCSV()">📥 CSV</button>
+                <button class="btn btn-sm btn-ghost" onclick="exportUnpaidPDF()">📄 PDF</button>
+              </div>
+            </div>
+            <div id="unpaidStats" style="display:none;margin-bottom:12px"></div>
+            <div class="unpaid-table-wrap" id="unpaidTableWrap">
+              <div class="empty-state"><div class="empty-icon">🎓</div><p>Select a grade to view unpaid students</p></div>
+            </div>
+          </div>
+        </div>
 
-      <button class="btn btn-danger" style="margin-top:20px; font-size:12px; border:1px solid #fee2e2; background:none; color:var(--danger)" onclick="doLogout()">Logout</button>
-    </div>
-  </div>
+      </div><!-- /main-content -->
+    </div><!-- /main -->
+  </div><!-- /appView -->
 
   <script>
-    const API = 'https://script.google.com/macros/s/AKfycbytsAgEmsOpEkkQMnibaGMweNIAb1gxToHg4f5vOis0pjubgEMW583s424qCAhSuen5-A/exec';
-    
-    let user = null, students = [], attLogs = [], attSummary = {}, currentAttStatus = 'present';
-    let studentCache = {};
-    let classListCache = {}; // === FIX: Cache for class student lists ===
-    let isAdmin = false;
-    
-    const apiCache = new Map();
-    const CACHE_TTL = 60000;
-    
-    async function call(action, data={}, quiet=false) {
-      const cacheKey = `${action}_${JSON.stringify(data)}`;
-      const now = Date.now();
-      
-      if (apiCache.has(cacheKey)) {
-        const { timestamp, result } = apiCache.get(cacheKey);
-        if (now - timestamp < CACHE_TTL) {
-          return result;
-        }
-        apiCache.delete(cacheKey);
-      }
-      
-      if(!quiet) document.body.classList.add('loading');
-      try {
-        const r = await fetch(API, { method: 'POST', body: JSON.stringify({...data, action}) });
-        const res = await r.json();
-        if(!quiet) document.body.classList.remove('loading');
-        
-        if (!res.error) {
-          apiCache.set(cacheKey, { timestamp: now, result: res });
-        }
-        return res;
-      } catch(e) {
-        if(!quiet) document.body.classList.remove('loading');
-        msg("Sync Error", "error"); return { error: true };
-      }
-    }
+  const API = 'https://script.google.com/macros/s/AKfycbytsAgEmsOpEkkQMnibaGMweNIAb1gxToHg4f5vOis0pjubgEMW583s424qCAhSuen5-A/exec';
 
-    function getEATDate(dateObj = new Date()) {
-      const offset = 3;
-      const localTime = dateObj.getTime();
-      const localOffset = dateObj.getTimezoneOffset() * 60000;
-      const utc = localTime + localOffset;
-      return new Date(utc + (3600000 * offset));
-    }
+  let user = null, students = [], attLogs = [], attSummary = {}, currentAttStatus = 'present';
+  let studentCache = {}, classListCache = {}, feeLogs = [];
+  let isAdmin = false;
 
-    function formatISODate(date) {
-      const d = getEATDate(date);
-      return d.toISOString().split('T')[0];
-    }
+  const apiCache = new Map();
+  const CACHE_TTL = 60000;
 
-    function formatTableDate(dateString) {
-      if(!dateString) return "-";
-      const d = getEATDate(new Date(dateString));
-      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
+  // ════════════════════════════════════
+  // API CALL
+  // ════════════════════════════════════
+  async function call(action, data={}, quiet=false) {
+    const cacheKey = `${action}_${JSON.stringify(data)}`;
+    const now = Date.now();
+    if (apiCache.has(cacheKey)) {
+      const { timestamp, result } = apiCache.get(cacheKey);
+      if (now - timestamp < CACHE_TTL) return result;
+      apiCache.delete(cacheKey);
     }
-    
-    function normalizeDateForFilter(dateInput) {
-      if (!dateInput) return null;
-      const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
-      const eat = getEATDate(d);
-      return `${eat.getFullYear()}-${String(eat.getMonth()+1).padStart(2,'0')}-${String(eat.getDate()).padStart(2,'0')}`;
+    if (!quiet) document.body.classList.add('loading');
+    try {
+      const r = await fetch(API, { method: 'POST', body: JSON.stringify({...data, action}) });
+      const res = await r.json();
+      if (!quiet) document.body.classList.remove('loading');
+      if (!res.error) apiCache.set(cacheKey, { timestamp: now, result: res });
+      return res;
+    } catch(e) {
+      if (!quiet) document.body.classList.remove('loading');
+      msg("Sync Error", "error"); return { error: true };
     }
+  }
 
-    function msg(text, type='success', target='app') {
-      const el = target === 'login' ? document.getElementById('loginMsg') : document.getElementById('appMsg');
-      if (el) {
-        el.textContent = text; 
-        el.className = `message ${type}`; 
-        el.style.display = 'block';
-        setTimeout(() => el.style.display = 'none', 3000);
-      }
-    }
+  // ════════════════════════════════════
+  // DATE HELPERS (EAT timezone)
+  // ════════════════════════════════════
+  function getEATDate(dateObj = new Date()) {
+    const offset = 3;
+    const utc = dateObj.getTime() + dateObj.getTimezoneOffset() * 60000;
+    return new Date(utc + 3600000 * offset);
+  }
+  function formatISODate(date) {
+    const d = getEATDate(date);
+    return d.toISOString().split('T')[0];
+  }
+  function formatTableDate(dateString) {
+    if (!dateString) return "-";
+    const d = getEATDate(new Date(dateString));
+    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+  }
+  function normalizeDateForFilter(dateInput) {
+    if (!dateInput) return null;
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    const eat = getEATDate(d);
+    return `${eat.getFullYear()}-${String(eat.getMonth()+1).padStart(2,'0')}-${String(eat.getDate()).padStart(2,'0')}`;
+  }
+  // NEW: get yesterday date
+  function getYesterdayISO() {
+    const d = getEATDate(new Date());
+    d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
 
-    function debounce(func, wait) {
-      let timeout;
-      return function executedFunction(...args) {
-        const later = () => {
-          clearTimeout(timeout);
-          func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-      };
+  // ════════════════════════════════════
+  // UI HELPERS
+  // ════════════════════════════════════
+  function msg(text, type='success', target='app') {
+    const el = target === 'login' ? document.getElementById('loginMsg') : document.getElementById('appMsg');
+    if (el) {
+      el.textContent = text;
+      el.className = `message ${type}`;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 3000);
     }
-    
-    const debouncedRenderRecords = debounce(renderRecords, 300);
-    const tabContentCache = {};
-    
-    document.getElementById('loginForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const res = await call('login', { username: document.getElementById('user').value, password: document.getElementById('pass').value });
-      if(res.success) {
-        user = res.user;
-        isAdmin = (user.role && user.role.toLowerCase() === 'admin');
-        
-        if (isAdmin) {
-          document.body.classList.add('is-admin');
-        }
-        
-        localStorage.setItem('sool_user', JSON.stringify(user));
-        localStorage.setItem('sool_isAdmin', isAdmin.toString());
-        
-        document.getElementById('loginView').style.display = 'none';
-        document.getElementById('appView').style.display = 'block';
-        document.getElementById('greet').textContent = `Hi, ${user.username}`;
-        document.getElementById('roleDisplay').textContent = user.role;
-        document.getElementById('attDate').value = formatISODate(new Date());
-        
-        if(isAdmin) {
-          document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('reg')">Reg</button>`;
-          document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('fee')">Fees</button>`;
-        }
-        showTab('att');
-        refreshData();
-      } else msg(res.message || "Login Failed", "error", "login");
-    };
-    
-    document.addEventListener('DOMContentLoaded', () => {
-      const savedUser = localStorage.getItem('sool_user');
-      const savedAdmin = localStorage.getItem('sool_isAdmin');
-      
-      if (savedUser && !user) {
-        try {
-          user = JSON.parse(savedUser);
-          isAdmin = (savedAdmin === 'true' || (user.role && user.role.toLowerCase() === 'admin'));
-          
-          if (isAdmin) {
-            document.body.classList.add('is-admin');
-          }
-          
-          document.getElementById('loginView').style.display = 'none';
-          document.getElementById('appView').style.display = 'block';
-          document.getElementById('greet').textContent = `Hi, ${user.username}`;
-          document.getElementById('roleDisplay').textContent = user.role;
-          document.getElementById('attDate').value = formatISODate(new Date());
-          
-          if(isAdmin) {
-            document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('reg')">Reg</button>`;
-            document.getElementById('nav').innerHTML += `<button class="tab-btn" onclick="showTab('fee')">Fees</button>`;
-          }
-          showTab('att');
-          refreshData();
-        } catch(e) { 
-          localStorage.removeItem('sool_user'); 
-          localStorage.removeItem('sool_isAdmin');
-        }
-      }
+  }
+  function debounce(func, wait) {
+    let t; return (...args) => { clearTimeout(t); t = setTimeout(() => func(...args), wait); };
+  }
+  const debouncedRenderRecords = debounce(renderRecords, 300);
+  const tabContentCache = {};
+
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('open');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('open');
+  }
+  function updateHeaderDate() {
+    const d = getEATDate(new Date());
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    document.getElementById('headerDate').textContent =
+      `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  // ════════════════════════════════════
+  // LOGIN
+  // ════════════════════════════════════
+  document.getElementById('loginForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const res = await call('login', {
+      username: document.getElementById('user').value,
+      password: document.getElementById('pass').value
     });
+    if (res.success) {
+      user = res.user;
+      isAdmin = (user.role && user.role.toLowerCase() === 'admin');
+      if (isAdmin) document.body.classList.add('is-admin');
+      localStorage.setItem('sool_user', JSON.stringify(user));
+      localStorage.setItem('sool_isAdmin', isAdmin.toString());
+      initApp();
+    } else {
+      msg(res.message || "Login Failed", "error", "login");
+    }
+  };
 
-    // === FIX: Complete logout with immediate view switch ===
-    window.doLogout = () => {
+  function initApp() {
+    document.getElementById('loginView').style.display = 'none';
+    document.getElementById('appView').style.display = 'block';
+
+    const initials = (user.username || 'U').charAt(0).toUpperCase();
+    document.getElementById('sidebarAvatar').textContent = initials;
+    document.getElementById('sidebarName').textContent = user.username;
+    document.getElementById('sidebarRole').textContent = user.role;
+    document.getElementById('attDate').value = formatISODate(new Date());
+
+    updateHeaderDate();
+
+    // Show admin nav items
+    if (isAdmin) {
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.removeProperty('display');
+      });
+    }
+
+    showTab('att');
+    refreshData();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const savedUser = localStorage.getItem('sool_user');
+    const savedAdmin = localStorage.getItem('sool_isAdmin');
+    if (savedUser) {
       try {
-        // Clear all storage
+        user = JSON.parse(savedUser);
+        isAdmin = (savedAdmin === 'true' || (user.role && user.role.toLowerCase() === 'admin'));
+        if (isAdmin) document.body.classList.add('is-admin');
+        initApp();
+      } catch(e) {
         localStorage.removeItem('sool_user');
         localStorage.removeItem('sool_isAdmin');
-        
-        // Clear memory
-        user = null;
-        isAdmin = false;
-        apiCache.clear();
-        classListCache = {};
-        tabContentCache = {};
-        
-        // Remove admin styling
-        document.body.classList.remove('is-admin');
-        
-        // === CRITICAL: Switch views immediately ===
-        const appView = document.getElementById('appView');
-        const loginView = document.getElementById('loginView');
-        
-        // Hide app completely
-        appView.style.setProperty('display', 'none', 'important');
-        
-        // Show login
-        loginView.style.setProperty('display', 'block', 'important');
-        
-        // Reset forms
-        document.getElementById('loginForm').reset();
-        document.getElementById('attClass').value = '';
-        document.getElementById('rollId').value = '';
-        document.getElementById('rollName').value = '';
-        document.getElementById('searchFilter').value = '';
-        document.getElementById('previewList').style.display = 'none';
-        document.getElementById('batchBtn').style.display = 'none';
-        
-        // Reset nav
-        document.getElementById('nav').innerHTML = `
-          <button class="tab-btn active" onclick="showTab('att')">Attendance</button>
-          <button class="tab-btn" onclick="showTab('list')">Records</button>
-          <button class="tab-btn" onclick="showTab('stats')">Status</button>
-        `;
-        
-        // Show logout message on login page
-        const loginMsg = document.getElementById('loginMsg');
-        loginMsg.textContent = "✓ Logged out successfully";
-        loginMsg.className = "message success";
-        loginMsg.style.display = 'block';
-        
-        // Force browser repaint
-        setTimeout(() => {
-          loginMsg.style.display = 'none';
-        }, 3000);
-        
-        console.log('Logout completed');
-      } catch(err) {
-        console.error('Logout error:', err);
-        // Fallback: reload page
-        window.location.href = window.location.href;
       }
-    };
+    }
+  });
 
-    async function refreshData(manual=false) {
-      const [sData, lData, sumData] = await Promise.all([
-        call('getStudents', {}, !manual),
-        call('getAttendanceLogs', {}, !manual),
-        call('getAttendanceSummary', {}, true)
-      ]);
-      if(Array.isArray(sData)) {
-          students = sData;
-          studentCache = {};
-          classListCache = {}; // Clear class cache on refresh
-          students.forEach(s => studentCache[`${s.Class}_${s.ID}`] = s.Name);
-      }
-      if(Array.isArray(lData)) attLogs = lData;
-      if(sumData && !sumData.error) attSummary = sumData;
-      updateStats();
-      renderRecords();
-      if(manual) msg("Refreshed");
+  // ════════════════════════════════════
+  // LOGOUT
+  // ════════════════════════════════════
+  window.doLogout = () => {
+    try {
+      localStorage.removeItem('sool_user');
+      localStorage.removeItem('sool_isAdmin');
+      user = null; isAdmin = false;
+      apiCache.clear(); classListCache = {};
+      document.body.classList.remove('is-admin');
+      document.getElementById('appView').style.setProperty('display','none','important');
+      document.getElementById('loginView').style.setProperty('display','flex','important');
+      document.getElementById('loginForm').reset();
+
+      const loginMsg = document.getElementById('loginMsg');
+      loginMsg.textContent = "✓ Logged out successfully";
+      loginMsg.className = "message success";
+      loginMsg.style.display = 'block';
+      setTimeout(() => loginMsg.style.display = 'none', 3000);
+    } catch(err) {
+      window.location.href = window.location.href;
+    }
+  };
+
+  // ════════════════════════════════════
+  // DATA REFRESH
+  // ════════════════════════════════════
+  async function refreshData(manual=false) {
+    const [sData, lData, sumData] = await Promise.all([
+      call('getStudents', {}, !manual),
+      call('getAttendanceLogs', {}, !manual),
+      call('getAttendanceSummary', {}, true)
+    ]);
+    if (Array.isArray(sData)) {
+      students = sData;
+      studentCache = {};
+      classListCache = {};
+      students.forEach(s => studentCache[`${s.Class}_${s.ID}`] = s.Name);
+    }
+    if (Array.isArray(lData)) attLogs = lData;
+    if (sumData && !sumData.error) attSummary = sumData;
+
+    // Fetch fee logs for admin
+    if (isAdmin) {
+      const fData = await call('getFeeLogs', {}, true);
+      if (Array.isArray(fData)) feeLogs = fData;
     }
 
-    function updateStats() {
-      document.getElementById('statTotal').textContent = students.length;
-      document.getElementById('statActive').textContent = students.filter(s => String(s.Status).toLowerCase() === 'active').length;
-      document.getElementById('statDropout').textContent = students.filter(s => String(s.Status).toLowerCase() === 'dropout').length;
-      document.getElementById('statInactive').textContent = students.filter(s => String(s.Status).toLowerCase() === 'inactive').length;
-    }
+    updateStats();
+    renderRecords();
+    if (manual) msg("Synced ✓");
+  }
 
-    function resetFilters() {
-      document.getElementById('listFilter').value = 'all';
-      document.getElementById('dateFilter').value = '';
-      document.getElementById('sessionFilter').value = 'all';
-      document.getElementById('searchFilter').value = '';
-      document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
-    }
+  function updateStats() {
+    document.getElementById('statTotal').textContent = students.length;
+    document.getElementById('statActive').textContent = students.filter(s => String(s.Status).toLowerCase() === 'active').length;
+    document.getElementById('statDropout').textContent = students.filter(s => String(s.Status).toLowerCase() === 'dropout').length;
+    document.getElementById('statInactive').textContent = students.filter(s => String(s.Status).toLowerCase() === 'inactive').length;
+  }
 
-    function applyQuickFilter(grade) {
-      document.getElementById('recordMode').value = 'absent';
-      document.getElementById('listFilter').value = grade;
-      document.getElementById('dateFilter').value = formatISODate(new Date());
-      document.querySelectorAll('.q-btn').forEach(b => {
-        b.classList.toggle('active', b.textContent.includes(grade.replace('aad','')));
+  // ════════════════════════════════════
+  // TAB SWITCHING
+  // ════════════════════════════════════
+  const tabTitles = {
+    att: { title: 'Attendance', sub: 'Mark daily attendance' },
+    list: { title: 'Records', sub: 'View and filter records' },
+    stats: { title: 'Status', sub: 'Student statistics' },
+    reg: { title: 'Registration', sub: 'Register new students' },
+    fee: { title: 'Fees', sub: 'Manage fee payments' }
+  };
+
+  window.showTab = (t) => {
+    if ((t === 'reg' || t === 'fee') && !isAdmin) { msg("Admin access required", "error"); return; }
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById(t+'Tab').classList.add('active');
+    const navBtn = document.getElementById('nav-'+t);
+    if (navBtn) navBtn.classList.add('active');
+    const info = tabTitles[t] || {};
+    document.getElementById('pageTitle').textContent = info.title || t;
+    document.getElementById('pageSubtitle').textContent = info.sub || '';
+    if (t === 'list') renderRecords();
+    closeSidebar();
+  };
+
+  // ════════════════════════════════════
+  // QUICK FILTER — uses Yesterday now
+  // ════════════════════════════════════
+  function resetFilters() {
+    document.getElementById('listFilter').value = 'all';
+    document.getElementById('dateFilter').value = '';
+    document.getElementById('sessionFilter').value = 'all';
+    document.getElementById('searchFilter').value = '';
+    document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
+  }
+
+  function applyQuickFilter(grade) {
+    document.getElementById('recordMode').value = 'absent';
+    document.getElementById('listFilter').value = grade;
+    document.getElementById('dateFilter').value = getYesterdayISO(); // CHANGED: yesterday
+    document.querySelectorAll('.q-btn').forEach(b => {
+      b.classList.toggle('active', b.textContent.trim() === 'G'+grade.replace('aad',''));
+    });
+    renderRecords();
+  }
+
+  // ════════════════════════════════════
+  // STUDENT SUMMARY MODAL
+  // ════════════════════════════════════
+  window.openStudentSummary = (roll, grade) => {
+    const student = students.find(s => String(s.ID) === String(roll) && s.Class === grade);
+    if (!student) return;
+
+    document.getElementById('modalName').textContent = student.Name;
+    const statusClass = `badge-${String(student.Status).toLowerCase()}`;
+    let metaHtml = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:13px;color:var(--muted)">Roll <b class="font-mono">#${student.ID}</b> · Grade <b>${student.Class}</b></span>
+        <span class="badge ${statusClass}">${student.Status}</span>
+      </div>`;
+    if (isAdmin) {
+      metaHtml += `
+        <div style="font-size:12px;color:var(--muted)">👩 Mother: <b>${student.MotherName || '-'}</b></div>
+        <div style="font-size:12px;color:var(--muted)">📞 Phone: <b>${student.Phone || 'Not recorded'}</b></div>`;
+    } else {
+      metaHtml += `<div style="font-size:12px;color:var(--muted)">Contact info visible to admin only</div>`;
+    }
+    document.getElementById('modalMeta').innerHTML = metaHtml;
+
+    const relevant = attLogs.filter(l =>
+      String(l.roll) === String(roll) && l.class === grade &&
+      (l.status === 'absent' || l.status === 'sick' || l.status === 'late')
+    );
+    const abs = relevant.filter(l => l.status === 'absent').length;
+    const sick = relevant.filter(l => l.status === 'sick').length;
+    const late = relevant.filter(l => l.status === 'late').length;
+
+    document.getElementById('modalPills').innerHTML = `
+      <div class="summary-pill"><div class="pval" style="color:var(--danger)">${abs}</div><div class="plabel">Absent</div></div>
+      <div class="summary-pill"><div class="pval" style="color:var(--purple)">${sick}</div><div class="plabel">Sick</div></div>
+      <div class="summary-pill"><div class="pval" style="color:var(--warning)">${late}</div><div class="plabel">Late</div></div>`;
+
+    let historyHtml = '';
+    if (relevant.length === 0) {
+      historyHtml = `<p style="color:var(--muted);text-align:center;padding:20px 0;font-size:13px">No exception records found.</p>`;
+    } else {
+      const sorted = [...relevant].sort((a,b) => new Date(b.date) - new Date(a.date));
+      historyHtml = `<ul class="history-list">`;
+      sorted.forEach(l => {
+        historyHtml += `
+          <li class="history-item">
+            <span style="font-size:13px">${formatTableDate(l.date)} <span style="color:var(--muted);font-size:11px">(${l.session})</span></span>
+            <span class="badge badge-${l.status}">${l.status}</span>
+          </li>`;
       });
-      renderRecords();
+      historyHtml += `</ul>`;
+    }
+    document.getElementById('modalHistory').innerHTML = historyHtml;
+    document.getElementById('studentModal').classList.add('open');
+  };
+
+  window.closeModal = () => document.getElementById('studentModal').classList.remove('open');
+  window.onclick = (e) => { if (e.target === document.getElementById('studentModal')) closeModal(); };
+
+  // ════════════════════════════════════
+  // RENDER RECORDS TABLE
+  // ════════════════════════════════════
+  function renderRecords() {
+    const mode = document.getElementById('recordMode').value;
+    const grade = document.getElementById('listFilter').value;
+    const dateVal = document.getElementById('dateFilter').value;
+    const sessionVal = document.getElementById('sessionFilter').value;
+    const searchVal = document.getElementById('searchFilter').value.toLowerCase();
+    const head = document.getElementById('recordHead');
+    const body = document.getElementById('recordBody');
+    const dateInp = document.getElementById('dateFilter');
+    const sessInp = document.getElementById('sessionFilter');
+    const quickBox = document.getElementById('quickFilterContainer');
+
+    body.innerHTML = '';
+    const fragment = document.createDocumentFragment();
+
+    const isHistory = (mode === 'absent');
+    dateInp.style.display = isHistory ? '' : 'none';
+    sessInp.style.display = isHistory ? '' : 'none';
+    quickBox.style.display = isHistory ? 'block' : 'none';
+
+    if (mode === 'students') {
+      head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Status</th></tr>';
+      students.filter(s => {
+        const matchGrade = grade === 'all' || s.Class === grade;
+        const matchSearch = !searchVal ||
+          s.Name.toLowerCase().includes(searchVal) ||
+          (s.Phone && String(s.Phone).includes(searchVal)) ||
+          (s.MotherName && s.MotherName.toLowerCase().includes(searchVal));
+        return matchGrade && matchSearch;
+      }).forEach(s => {
+        const tr = document.createElement('tr');
+        let phone = (isAdmin && s.Phone) ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">${s.Phone}</div>` : '';
+        tr.innerHTML = `
+          <td class="font-mono" style="font-size:12px;color:var(--muted)">#${s.ID}</td>
+          <td>
+            <span class="clickable-name" onclick="openStudentSummary('${s.ID}','${s.Class}')">${s.Name}</span>${phone}
+          </td>
+          <td><span class="badge badge-${String(s.Status).toLowerCase()}">${s.Status}</span></td>`;
+        fragment.appendChild(tr);
+      });
+    } else if (mode === 'absent') {
+      head.innerHTML = '<tr><th>Date</th><th>Name</th><th>Details</th></tr>';
+      const grouped = {};
+      attLogs.filter(l => {
+        const isRelevant = l.status === 'absent' || l.status === 'sick' || l.status === 'late';
+        const isGrade = grade === 'all' || l.class === grade;
+        const studentRef = students.find(s => String(s.ID) === String(l.roll) && s.Class === l.class);
+        const matchSearch = !searchVal ||
+          l.name.toLowerCase().includes(searchVal) ||
+          (studentRef && studentRef.Phone && String(studentRef.Phone).includes(searchVal)) ||
+          (studentRef && studentRef.MotherName && studentRef.MotherName.toLowerCase().includes(searchVal));
+        const logDateNorm = normalizeDateForFilter(l.date);
+        const isDate = !dateVal || logDateNorm === dateVal;
+        const isSession = sessionVal === 'all' || l.session === sessionVal;
+        return isRelevant && isGrade && isDate && isSession && matchSearch;
+      }).forEach(l => {
+        const displayDate = formatTableDate(l.date);
+        const key = `${l.roll}_${l.class}_${displayDate}`;
+        if (!grouped[key]) grouped[key] = { date: displayDate, name: l.name, roll: l.roll, class: l.class, sessions: [], statuses: new Set() };
+        const code = l.session === 'Morning' ? 'M' : (l.session === 'After Break' ? 'B' : '?');
+        if (!grouped[key].sessions.includes(code)) grouped[key].sessions.push(code);
+        grouped[key].statuses.add(l.status);
+      });
+
+      Object.values(grouped).sort((a,b) => {
+        const parse = s => { const [d,m,y] = s.split('/'); return new Date(y,m-1,d); };
+        return parse(b.date) - parse(a.date);
+      }).forEach(g => {
+        const sessHtml = [...new Set(g.sessions)].sort().map(s => `<span class="session-indicator sess-${s.toLowerCase()}">${s}</span>`).join('');
+        const statusArr = [...g.statuses];
+        const statusText = statusArr.join(' / ');
+        const primary = statusArr.includes('absent') ? 'absent' : (statusArr.includes('sick') ? 'sick' : 'late');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-size:12px;color:var(--muted);white-space:nowrap">${g.date}</td>
+          <td><span class="clickable-name" onclick="openStudentSummary('${g.roll}','${g.class}')">${g.name}</span></td>
+          <td><div style="font-size:11px;color:var(--muted);margin-bottom:4px">${g.class}</div>${sessHtml} <span class="badge badge-${primary}">${statusText}</span></td>`;
+        fragment.appendChild(tr);
+      });
+    } else if (mode === 'summary') {
+      head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Week</th><th>Month</th></tr>';
+      students.filter(s => {
+        const matchGrade = grade === 'all' || s.Class === grade;
+        const matchSearch = !searchVal ||
+          s.Name.toLowerCase().includes(searchVal) ||
+          (s.Phone && String(s.Phone).includes(searchVal)) ||
+          (s.MotherName && s.MotherName.toLowerCase().includes(searchVal));
+        return matchGrade && matchSearch && String(s.Status).toLowerCase() === 'active';
+      }).forEach(s => {
+        const stats = attSummary[String(s.ID)] || { w:0, m:0 };
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="font-mono" style="font-size:12px;color:var(--muted)">#${s.ID}</td>
+          <td><span class="clickable-name" onclick="openStudentSummary('${s.ID}','${s.Class}')">${s.Name}</span></td>
+          <td><span class="badge ${stats.w > 2 ? 'badge-absent' : 'badge-active'}">${stats.w}d</span></td>
+          <td><span class="badge ${stats.m > 5 ? 'badge-absent' : 'badge-active'}">${stats.m}d</span></td>`;
+        fragment.appendChild(tr);
+      });
     }
 
-    window.openStudentSummary = (roll, grade) => {
-      const student = students.find(s => String(s.ID) === String(roll) && s.Class === grade);
-      if(!student) return;
+    body.appendChild(fragment);
+  }
 
-      const modal = document.getElementById('studentModal');
-      const nameEl = document.getElementById('modalName');
-      const metaEl = document.getElementById('modalMeta');
-      const historyEl = document.getElementById('modalHistory');
+  // ════════════════════════════════════
+  // EXPORT CSV — Records Tab (FIXED)
+  // ════════════════════════════════════
+  function exportCSV() {
+    if (!isAdmin) { msg("Admin access required", "error"); return; }
+    const table = document.getElementById('recordTable');
+    const headers = Array.from(table.querySelectorAll('th')).map(th => `"${th.innerText.trim()}"`);
+    const rows = [headers.join(',')];
+    table.querySelectorAll('tbody tr').forEach(tr => {
+      const cells = Array.from(tr.querySelectorAll('td')).map(td => `"${td.innerText.replace(/\n/g,' ').replace(/"/g,'""').trim()}"`);
+      rows.push(cells.join(','));
+    });
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `SoolSchool_Records_${Date.now()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 
-      nameEl.textContent = student.Name;
-      const statusClass = `badge-${String(student.Status).toLowerCase()}`;
-      
-      let metaHtml = `
-        <div style="display:flex; justify-content:space-between; margin-bottom:5px">
-          <span>Roll: <b>#${student.ID}</b> | Grade: <b>${student.Class}</b></span>
-          <span class="badge ${statusClass}">${student.Status}</span>
+  // ════════════════════════════════════
+  // EXPORT PDF — Records Tab (NEW)
+  // ════════════════════════════════════
+  function exportPDF() {
+    if (!isAdmin) { msg("Admin access required", "error"); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    const mode = document.getElementById('recordMode').value;
+    const modeLabel = mode === 'students' ? 'Student List' : (mode === 'absent' ? 'Absence Records' : 'Weekly/Monthly Summary');
+    const dateVal = document.getElementById('dateFilter').value || 'All Dates';
+    const gradeVal = document.getElementById('listFilter').value;
+
+    // Header
+    doc.setFillColor(30, 58, 138);
+    doc.rect(0, 0, 210, 28, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16); doc.setFont(undefined, 'bold');
+    doc.text('Sool School Management', 14, 11);
+    doc.setFontSize(10); doc.setFont(undefined, 'normal');
+    doc.text(`${modeLabel} · Grade: ${gradeVal === 'all' ? 'All' : gradeVal} · Date: ${dateVal}`, 14, 20);
+    doc.setTextColor(0, 0, 0);
+
+    const table = document.getElementById('recordTable');
+    const headers = [Array.from(table.querySelectorAll('th')).map(th => th.innerText.trim())];
+    const rows = Array.from(table.querySelectorAll('tbody tr')).map(tr =>
+      Array.from(tr.querySelectorAll('td')).map(td => td.innerText.replace(/\n/g, ' ').trim())
+    );
+
+    doc.autoTable({
+      head: headers, body: rows,
+      startY: 32, margin: { left: 14, right: 14 },
+      headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: 'bold', fontSize: 10 },
+      bodyStyles: { fontSize: 9, textColor: [30, 41, 59] },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      styles: { cellPadding: 4, lineColor: [226, 232, 240], lineWidth: 0.3 }
+    });
+
+    doc.setFontSize(8); doc.setTextColor(150);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, doc.internal.pageSize.height - 8);
+    doc.save(`SoolSchool_${mode}_${Date.now()}.pdf`);
+  }
+
+  // ════════════════════════════════════
+  // UNPAID FEE FILTER (NEW)
+  // ════════════════════════════════════
+  function getUnpaidStudents(grade, term) {
+    if (!grade) return [];
+    const classStudents = students.filter(s =>
+      s.Class === grade && String(s.Status).toLowerCase() === 'active'
+    );
+    const paidRolls = new Set(
+      feeLogs
+        .filter(f => f.class === grade && f.session === term)
+        .map(f => String(f.roll))
+    );
+    return classStudents.filter(s => !paidRolls.has(String(s.ID)));
+  }
+
+  function renderUnpaidFilter() {
+    const grade = document.getElementById('unpaidClassFilter').value;
+    const term = document.getElementById('unpaidTermFilter').value;
+    const wrap = document.getElementById('unpaidTableWrap');
+    const statsEl = document.getElementById('unpaidStats');
+
+    if (!grade) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🎓</div><p>Select a grade to view unpaid students</p></div>';
+      statsEl.style.display = 'none';
+      return;
+    }
+
+    const unpaid = getUnpaidStudents(grade, term);
+    const total = students.filter(s => s.Class === grade && String(s.Status).toLowerCase() === 'active').length;
+
+    statsEl.style.display = 'block';
+    statsEl.innerHTML = `
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div style="background:#fee2e2;border-radius:10px;padding:10px 18px;flex:1;min-width:120px">
+          <div style="font-size:22px;font-weight:800;color:#dc2626;font-family:var(--mono)">${unpaid.length}</div>
+          <div style="font-size:11px;color:#991b1b;font-weight:700;text-transform:uppercase">Unpaid</div>
         </div>
-      `;
-      
-      if (isAdmin) {
-        metaHtml += `
-          <div style="font-size: 11px; color: #64748b;">Mother: ${student.MotherName || '-'}</div>
-          <div style="font-size: 11px; color: #64748b;">Phone: ${student.Phone || 'No phone recorded'}</div>
-        `;
-      } else {
-        metaHtml += `<div style="font-size: 11px; color: #64748b;">Contact info visible to admin only</div>`;
-      }
-      
-      metaEl.innerHTML = metaHtml;
+        <div style="background:#d1fae5;border-radius:10px;padding:10px 18px;flex:1;min-width:120px">
+          <div style="font-size:22px;font-weight:800;color:#059669;font-family:var(--mono)">${total - unpaid.length}</div>
+          <div style="font-size:11px;color:#065f46;font-weight:700;text-transform:uppercase">Paid</div>
+        </div>
+        <div style="background:#dbeafe;border-radius:10px;padding:10px 18px;flex:1;min-width:120px">
+          <div style="font-size:22px;font-weight:800;color:#2563eb;font-family:var(--mono)">${total}</div>
+          <div style="font-size:11px;color:#1e40af;font-weight:700;text-transform:uppercase">Total</div>
+        </div>
+      </div>`;
 
-      const relevantLogs = attLogs.filter(l => 
-        String(l.roll) === String(roll) && 
-        l.class === grade && 
-        (l.status === 'absent' || l.status === 'sick' || l.status === 'late')
+    if (unpaid.length === 0) {
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🎉</div><p>All students in this grade have paid for ' + term + '!</p></div>';
+      return;
+    }
+
+    let tableHtml = `
+      <table>
+        <thead><tr><th>Roll</th><th>Name</th><th>Grade</th><th>Status</th></tr></thead>
+        <tbody>`;
+    unpaid.forEach(s => {
+      tableHtml += `
+        <tr>
+          <td class="font-mono" style="font-size:12px;color:var(--muted)">#${s.ID}</td>
+          <td><span class="clickable-name" onclick="openStudentSummary('${s.ID}','${s.Class}')">${s.Name}</span>
+            ${isAdmin && s.Phone ? `<div style="font-size:11px;color:var(--muted)">${s.Phone}</div>` : ''}
+          </td>
+          <td style="font-size:12px">${s.Class}</td>
+          <td><span class="badge badge-unpaid">Unpaid</span></td>
+        </tr>`;
+    });
+    tableHtml += '</tbody></table>';
+    wrap.innerHTML = tableHtml;
+  }
+
+  // ════════════════════════════════════
+  // EXPORT UNPAID CSV (NEW)
+  // ════════════════════════════════════
+  function exportUnpaidCSV() {
+    const grade = document.getElementById('unpaidClassFilter').value;
+    const term = document.getElementById('unpaidTermFilter').value;
+    if (!grade) { msg("Select a grade first", "error"); return; }
+    const unpaid = getUnpaidStudents(grade, term);
+    if (unpaid.length === 0) { msg("No unpaid students to export", "info"); return; }
+    const rows = ['"Roll","Name","Grade","Phone","Term"'];
+    unpaid.forEach(s => {
+      rows.push(`"${s.ID}","${s.Name}","${s.Class}","${s.Phone || ''}","${term}"`);
+    });
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Unpaid_${grade}_${term.replace(' ','')}_${Date.now()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  // ════════════════════════════════════
+  // EXPORT UNPAID PDF (NEW)
+  // ════════════════════════════════════
+  function exportUnpaidPDF() {
+    const grade = document.getElementById('unpaidClassFilter').value;
+    const term = document.getElementById('unpaidTermFilter').value;
+    if (!grade) { msg("Select a grade first", "error"); return; }
+    const unpaid = getUnpaidStudents(grade, term);
+    if (unpaid.length === 0) { msg("No unpaid students to export", "info"); return; }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFillColor(30, 58, 138);
+    doc.rect(0, 0, 210, 28, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16); doc.setFont(undefined, 'bold');
+    doc.text('Sool School — Unpaid Fee Report', 14, 11);
+    doc.setFontSize(10); doc.setFont(undefined, 'normal');
+    doc.text(`Grade: ${grade} · Term: ${term} · Total Unpaid: ${unpaid.length}`, 14, 20);
+    doc.setTextColor(0, 0, 0);
+
+    const rows = unpaid.map(s => [String(s.ID), s.Name, s.Class, s.Phone || '-', term]);
+
+    doc.autoTable({
+      head: [['Roll', 'Name', 'Grade', 'Phone', 'Term']],
+      body: rows,
+      startY: 32, margin: { left: 14, right: 14 },
+      headStyles: { fillColor: [220, 38, 38], textColor: 255, fontStyle: 'bold', fontSize: 10 },
+      bodyStyles: { fontSize: 9, textColor: [30, 41, 59] },
+      alternateRowStyles: { fillColor: [254, 226, 226] },
+      styles: { cellPadding: 4 }
+    });
+
+    doc.setFontSize(8); doc.setTextColor(150);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, doc.internal.pageSize.height - 8);
+    doc.save(`Unpaid_${grade}_${term.replace(' ','')}_${Date.now()}.pdf`);
+  }
+
+  // ════════════════════════════════════
+  // ATTENDANCE HELPERS
+  // ════════════════════════════════════
+  window.handleClassChange = (type) => {
+    const cls = document.getElementById('attClass').value;
+    lookupStudent(type);
+    if (type === 'att') {
+      const container = document.getElementById('previewContainer');
+      const box = document.getElementById('previewList');
+      if (!cls) { container.style.display = 'none'; return; }
+      const list = classListCache[cls] || students.filter(s =>
+        String(s.Class) === String(cls) && String(s.Status).toLowerCase() === 'active'
       );
-      
-      const absCount = relevantLogs.filter(l => l.status === 'absent').length;
-      const sickCount = relevantLogs.filter(l => l.status === 'sick').length;
-      const lateCount = relevantLogs.filter(l => l.status === 'late').length;
-
-      let historyHtml = `
-        <div style="background:#f1f5f9; padding:10px; border-radius:8px; margin-bottom:10px; display:flex; gap:10px; text-align:center; font-size:12px">
-          <div style="flex:1">Absent<br><b>${absCount}</b></div>
-          <div style="flex:1">Sick<br><b>${sickCount}</b></div>
-          <div style="flex:1">Late<br><b>${lateCount}</b></div>
-        </div>
-      `;
-
-      if(relevantLogs.length === 0) {
-        historyHtml += `<p style="color:#94a3b8; text-align:center; padding:10px">No exception records found.</p>`;
-      } else {
-        relevantLogs.sort((a,b) => new Date(b.date) - new Date(a.date));
-        historyHtml += `<ul style="list-style:none; max-height:250px; overflow-y:auto">`;
-        relevantLogs.forEach(l => {
-          const dateStr = formatTableDate(l.date);
-          historyHtml += `
-            <li style="padding:8px; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center">
-              <span>${dateStr} <small style="color:#64748b">(${l.session})</small></span>
-              <span class="badge badge-${l.status}">${l.status}</span>
-            </li>`;
-        });
-        historyHtml += `</ul>`;
-      }
-
-      historyEl.innerHTML = historyHtml;
-      modal.style.display = 'flex';
-    };
-
-    window.closeModal = () => document.getElementById('studentModal').style.display = 'none';
-
-    function renderRecords() {
-      const mode = document.getElementById('recordMode').value;
-      const grade = document.getElementById('listFilter').value;
-      const dateVal = document.getElementById('dateFilter').value;
-      const sessionVal = document.getElementById('sessionFilter').value;
-      const searchVal = document.getElementById('searchFilter').value.toLowerCase();
-      const head = document.getElementById('recordHead');
-      const body = document.getElementById('recordBody');
-      const dateInp = document.getElementById('dateFilter');
-      const sessInp = document.getElementById('sessionFilter');
-      const quickBox = document.getElementById('quickFilterContainer');
-      
-      const fragment = document.createDocumentFragment();
-      body.innerHTML = '';
-      
-      const isHistory = (mode === 'absent');
-      dateInp.style.display = isHistory ? 'block' : 'none';
-      sessInp.style.display = isHistory ? 'block' : 'none';
-      quickBox.style.display = isHistory ? 'block' : 'none';
-
-      if (mode === 'students') {
-        head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Status</th></tr>';
-        students.filter(s => {
-          const matchGrade = grade === 'all' || s.Class === grade;
-          const matchSearch = !searchVal || 
-                              s.Name.toLowerCase().includes(searchVal) || 
-                              (s.Phone && String(s.Phone).includes(searchVal)) ||
-                              (s.MotherName && s.MotherName.toLowerCase().includes(searchVal));
-          return matchGrade && matchSearch;
-        }).forEach(s => {
-          const tr = document.createElement('tr');
-          let phoneDisplay = '';
-          if (isAdmin && s.Phone) {
-            phoneDisplay = `<small style="color:#94a3b8">${s.Phone}</small>`;
-          }
-          tr.innerHTML = `
-            <td>${s.ID}</td>
-            <td>
-              <span class="clickable-name" onclick="openStudentSummary('${s.ID}', '${s.Class}')">${s.Name}</span><br>
-              ${phoneDisplay}
-            </td>
-            <td><span class="badge badge-${String(s.Status).toLowerCase()}">${s.Status}</span></td>
-          `;
-          fragment.appendChild(tr);
-        });
-      } 
-      else if (mode === 'absent') {
-        head.innerHTML = '<tr><th>Date</th><th>Name</th><th>Log</th></tr>';
-        const grouped = {};
-        
-        attLogs.filter(l => {
-          const isRelevant = l.status === 'absent' || l.status === 'sick' || l.status === 'late';
-          const isGrade = grade === 'all' || l.class === grade;
-          
-          const studentRef = students.find(s => String(s.ID) === String(l.roll) && s.Class === l.class);
-          const matchSearch = !searchVal || 
-                              l.name.toLowerCase().includes(searchVal) || 
-                              (studentRef && studentRef.Phone && String(studentRef.Phone).includes(searchVal)) ||
-                              (studentRef && studentRef.MotherName && studentRef.MotherName.toLowerCase().includes(searchVal));
-          
-          const logDateNormalized = normalizeDateForFilter(l.date);
-          const isDate = !dateVal || logDateNormalized === dateVal;
-          
-          const isSession = sessionVal === 'all' || l.session === sessionVal;
-          return isRelevant && isGrade && isDate && isSession && matchSearch;
-        }).forEach(l => {
-           const displayDate = formatTableDate(l.date);
-           const key = `${l.roll}_${l.class}_${displayDate}`;
-           
-           if(!grouped[key]) grouped[key] = { date: displayDate, name: l.name, roll: l.roll, class: l.class, sessions: [], statuses: new Set() };
-           const code = (l.session === 'Morning') ? 'M' : (l.session === 'After Break' ? 'B' : '?');
-           if(!grouped[key].sessions.includes(code)) grouped[key].sessions.push(code);
-           grouped[key].statuses.add(l.status);
-        });
-
-        Object.values(grouped).sort((a,b) => {
-          const [dayA, monthA, yearA] = a.date.split('/');
-          const [dayB, monthB, yearB] = b.date.split('/');
-          return new Date(yearB, monthB-1, dayB) - new Date(yearA, monthA-1, dayA);
-        }).forEach(g => {
-           const sessHtml = Array.from(new Set(g.sessions)).sort().map(s => `<span class="session-indicator sess-${s.toLowerCase()}">${s}</span>`).join('');
-           const statusArray = Array.from(g.statuses);
-           const statusText = statusArray.join(' / ');
-           let primaryStatus = statusArray.includes('absent') ? 'absent' : (statusArray.includes('sick') ? 'sick' : 'late');
-           
-           const tr = document.createElement('tr');
-           tr.innerHTML = `
-            <td>${g.date}</td>
-            <td><span class="clickable-name" onclick="openStudentSummary('${g.roll}', '${g.class}')">${g.name}</span></td>
-            <td><small>${g.class}<br>${sessHtml} <span class="badge badge-${primaryStatus}">${statusText}</span></small></td>
-           `;
-           fragment.appendChild(tr);
-        });
-      }
-      else if (mode === 'summary') {
-        head.innerHTML = '<tr><th>Roll</th><th>Name</th><th>Wk</th><th>Mo</th></tr>';
-        students.filter(s => {
-          const matchGrade = grade === 'all' || s.Class === grade;
-          const matchSearch = !searchVal || 
-                              s.Name.toLowerCase().includes(searchVal) || 
-                              (s.Phone && String(s.Phone).includes(searchVal)) ||
-                              (s.MotherName && s.MotherName.toLowerCase().includes(searchVal));
-          return matchGrade && matchSearch && String(s.Status).toLowerCase() === 'active';
-        }).forEach(s => {
-          const stats = attSummary[String(s.ID)] || { w: 0, m: 0 };
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${s.ID}</td>
-            <td><span class="clickable-name" onclick="openStudentSummary('${s.ID}', '${s.Class}')">${s.Name}</span></td>
-            <td>${stats.w}d</td>
-            <td>${stats.m}d</td>
-          `;
-          fragment.appendChild(tr);
-        });
-      }
-      
-      body.appendChild(fragment);
-    }
-
-    function exportCSV() {
-      if (!isAdmin) {
-        msg("Admin access required", "error");
-        return;
-      }
-      
-      const mode = document.getElementById('recordMode').value;
-      let rows = [];
-      const table = document.getElementById('recordTable');
-      const header = Array.from(table.querySelectorAll('th')).map(th => th.innerText);
-      rows.push(header.join(','));
-      Array.from(table.querySelectorAll('tbody tr')).forEach(tr => {
-        const data = Array.from(tr.querySelectorAll('td')).map(td => `"${td.innerText.replace(/\n/g, ' ')}"` );
-        rows.push(data.join(','));
-      });
-      const csvContent = "text/csv;charset=utf-8," + rows.join("\n");
-      const link = document.createElement("a");
-      link.setAttribute("href", encodeURI(csvContent));
-      link.setAttribute("download", `SoolSchool_${mode}.csv`);
-      link.click();
-    }
-
-    window.showTab = (t) => {
-      if ((t === 'reg' || t === 'fee') && !isAdmin) {
-        msg("Admin access required", "error");
-        return;
-      }
-      
-      if (tabContentCache[t] && t !== 'list') {
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(t+'Tab').classList.add('active');
-        const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(`'${t}'`));
-        if(btn) btn.classList.add('active');
-        return;
-      }
-      
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(t+'Tab').classList.add('active');
-      const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick')?.includes(`'${t}'`));
-      if(btn) btn.classList.add('active');
-      if(t === 'list') renderRecords();
-      tabContentCache[t] = true;
-    };
-
-    // === FIX: Optimized class student list with caching ===
-    window.handleClassChange = (type) => {
-      const cls = document.getElementById('attClass').value;
-      document.getElementById('batchBtn').style.display = cls ? 'block' : 'none';
-      lookupStudent(type);
-      
-      if(type === 'att') {
-         const box = document.getElementById('previewList');
-         
-         if(!cls) { 
-           box.style.display = 'none'; 
-           return;
-         }
-         
-         // === FIX: Use cached class list if available ===
-         if (classListCache[cls]) {
-           renderPreviewList(box, classListCache[cls]);
-           return;
-         }
-         
-         // Filter and cache
-         const list = students.filter(s => 
-           String(s.Class) === String(cls) && 
-           String(s.Status).toLowerCase() === 'active'
-         );
-         
-         classListCache[cls] = list;
-         renderPreviewList(box, list);
-      }
-    };
-    
-    // === FIX: Separate function for rendering preview list efficiently ===
-    function renderPreviewList(container, studentList) {
-      const fragment = document.createDocumentFragment();
-      
-      if (studentList.length === 0) {
-        container.innerHTML = "No active students";
-        container.style.display = 'block';
-        return;
-      }
-      
-      const header = document.createElement('p');
-      header.style.cssText = 'font-size:10px; color:#666; margin-bottom:5px';
-      header.textContent = `Students in this class (${studentList.length}):`;
-      fragment.appendChild(header);
-      
-      studentList.forEach(s => {
-        const div = document.createElement('div');
-        div.style.cssText = 'padding:3px 0; font-size:11px';
-        div.textContent = `#${s.ID} ${s.Name}`;
-        fragment.appendChild(div);
-      });
-      
-      container.innerHTML = '';
-      container.appendChild(fragment);
+      classListCache[cls] = list;
+      renderPreviewList(box, list);
       container.style.display = 'block';
     }
+  };
 
-    window.lookupStudent = (type) => {
-      const isAtt = (type === 'att');
-      const roll = document.getElementById(isAtt ? 'rollId' : 'fRoll').value;
-      const cls = document.getElementById(isAtt ? 'attClass' : 'fClass').value;
-      const display = document.getElementById(isAtt ? 'rollName' : 'fName');
-      if(!roll || !cls) { display.value = ""; return; }
-      const name = studentCache[`${cls}_${roll}`];
-      if(name) { display.value = name; } else { display.value = ""; display.placeholder = "Not found"; }
-    };
+  function renderPreviewList(container, list) {
+    const frag = document.createDocumentFragment();
+    const header = document.createElement('div');
+    header.className = 'preview-header';
+    header.textContent = `${list.length} active student${list.length !== 1 ? 's' : ''}`;
+    frag.appendChild(header);
+    list.forEach(s => {
+      const div = document.createElement('div');
+      div.className = 'preview-row';
+      div.innerHTML = `<span class="preview-id">#${s.ID}</span><span>${s.Name}</span>`;
+      frag.appendChild(div);
+    });
+    container.innerHTML = '';
+    container.appendChild(frag);
+  }
 
-    window.setAttStatus = (btn, s) => {
-      btn.parentElement.querySelectorAll('.att-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active'); currentAttStatus = s;
-    };
+  window.lookupStudent = (type) => {
+    const isAtt = (type === 'att');
+    const roll = document.getElementById(isAtt ? 'rollId' : 'fRoll').value;
+    const cls = document.getElementById(isAtt ? 'attClass' : 'fClass').value;
+    const display = document.getElementById(isAtt ? 'rollName' : 'fName');
+    if (!roll || !cls) { display.value = ""; return; }
+    const name = studentCache[`${cls}_${roll}`];
+    display.value = name || ""; display.placeholder = name ? "" : "Not found";
+  };
 
-    window.saveOne = async () => {
-      const roll = document.getElementById('rollId').value, name = document.getElementById('rollName').value, cls = document.getElementById('attClass').value;
-      if(!roll || !cls || !name) return msg("Verify Roll/Class", "error");
-      const res = await call('recordAttendance', {
-        date: document.getElementById('attDate').value, session: document.getElementById('attSession').value,
-        class: cls, rollNumber: roll, studentName: name, status: currentAttStatus, recordedBy: user.username
-      });
-      if(res.success) { 
-        msg("Saved"); 
-        document.getElementById('rollId').value = ""; 
-        document.getElementById('rollName').value = ""; 
-        refreshData(); 
-      }
-    };
+  window.setAttStatus = (btn, s) => {
+    btn.parentElement.querySelectorAll('.att-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentAttStatus = s;
+  };
 
-    window.markAllPresent = async () => {
-      const cls = document.getElementById('attClass').value;
-      if(!cls) return msg("Select a grade", "error");
-      const res = await call('markAllPresent', {
-        date: document.getElementById('attDate').value, session: document.getElementById('attSession').value,
-        class: cls, recordedBy: user.username
-      });
-      if(res.success) { msg(`Success: ${res.count} marked present`); refreshData(); }
-    };
+  window.saveOne = async () => {
+    const roll = document.getElementById('rollId').value;
+    const name = document.getElementById('rollName').value;
+    const cls = document.getElementById('attClass').value;
+    if (!roll || !cls || !name) return msg("Verify Roll/Class", "error");
+    const res = await call('recordAttendance', {
+      date: document.getElementById('attDate').value,
+      session: document.getElementById('attSession').value,
+      class: cls, rollNumber: roll, studentName: name,
+      status: currentAttStatus, recordedBy: user.username
+    });
+    if (res.success) {
+      msg("Saved ✓");
+      document.getElementById('rollId').value = "";
+      document.getElementById('rollName').value = "";
+      refreshData();
+    }
+  };
 
-    window.doRegister = async () => {
-      if (!isAdmin) { msg("Admin access required", "error"); return; }
-      const name = document.getElementById('rName').value;
-      if(!name) return msg("Name required", "error");
-      const res = await call('addStudent', {
-        name, 
-        motherName: document.getElementById('rMother').value, 
-        dob: document.getElementById('rDob').value,
-        pob: document.getElementById('rPob').value, 
-        phone: document.getElementById('rPhone').value,
-        transferFrom: document.getElementById('rTransfer').value,
-        class: document.getElementById('rClass').value, 
-        status: document.getElementById('rStatus').value
-      });
-      if(res.success) { 
-        msg("Registered: ID "+res.id); 
-        document.getElementById('rName').value = ""; 
-        document.getElementById('rMother').value = ""; 
-        document.getElementById('rTransfer').value = "";
-        document.getElementById('rPhone').value = "";
-        refreshData(true); 
-      }
-    };
+  window.markAllPresent = async () => {
+    const cls = document.getElementById('attClass').value;
+    if (!cls) return msg("Select a grade", "error");
+    const res = await call('markAllPresent', {
+      date: document.getElementById('attDate').value,
+      session: document.getElementById('attSession').value,
+      class: cls, recordedBy: user.username
+    });
+    if (res.success) { msg(`✓ ${res.count} students marked present`); refreshData(); }
+  };
 
-    window.doFee = async () => {
-      if (!isAdmin) { msg("Admin access required", "error"); return; }
-      const roll = document.getElementById('fRoll').value, amt = document.getElementById('fAmt').value, name = document.getElementById('fName').value, cls = document.getElementById('fClass').value;
-      if(!roll || !amt || !cls || !name) return msg("Check fields", "error");
-      const res = await call('processFee', { student: name, roll, amount: amt, session: document.getElementById('fSession').value, recordedBy: user.username, class: cls });
-      if(res.success) { msg("Payment Saved"); document.getElementById('fRoll').value = ""; document.getElementById('fAmt').value = ""; }
-    };
+  window.doRegister = async () => {
+    if (!isAdmin) { msg("Admin access required", "error"); return; }
+    const name = document.getElementById('rName').value;
+    if (!name) return msg("Name required", "error");
+    const res = await call('addStudent', {
+      name,
+      motherName: document.getElementById('rMother').value,
+      dob: document.getElementById('rDob').value,
+      pob: document.getElementById('rPob').value,
+      phone: document.getElementById('rPhone').value,
+      transferFrom: document.getElementById('rTransfer').value,
+      class: document.getElementById('rClass').value,
+      status: document.getElementById('rStatus').value
+    });
+    if (res.success) {
+      msg("Registered: ID " + res.id);
+      ['rName','rMother','rTransfer','rPhone'].forEach(id => document.getElementById(id).value = '');
+      refreshData(true);
+    }
+  };
 
-    window.onclick = (e) => { if(e.target == document.getElementById('studentModal')) closeModal(); };
+  window.doFee = async () => {
+    if (!isAdmin) { msg("Admin access required", "error"); return; }
+    const roll = document.getElementById('fRoll').value;
+    const amt = document.getElementById('fAmt').value;
+    const name = document.getElementById('fName').value;
+    const cls = document.getElementById('fClass').value;
+    if (!roll || !amt || !cls || !name) return msg("Check all fields", "error");
+    const res = await call('processFee', {
+      student: name, roll, amount: amt,
+      session: document.getElementById('fSession').value,
+      recordedBy: user.username, class: cls
+    });
+    if (res.success) {
+      msg("Payment Saved ✓");
+      document.getElementById('fRoll').value = '';
+      document.getElementById('fAmt').value = '';
+      document.getElementById('fName').value = '';
+      // Refresh fee logs and re-render unpaid
+      const fData = await call('getFeeLogs', {}, true);
+      if (Array.isArray(fData)) feeLogs = fData;
+      renderUnpaidFilter();
+    }
+  };
   </script>
 </body>
 </html>
