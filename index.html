@@ -939,15 +939,14 @@
 
   // ════════════════════════════════════
   // DATE HELPERS — EAT = UTC+3
-  // Always derived from UTC so the result is correct regardless of
-  // what timezone the user's device is set to.
+  // Date.getTime() already returns true UTC milliseconds.
+  // We add exactly 3 hours (no device-timezone involved at all).
+  // All reads use getUTC* so the result is always UTC+3.
   // ════════════════════════════════════
   function getEATDate(dateObj) {
-    // Work purely from UTC milliseconds + 3 h offset.
-    // dateObj defaults to right now if not supplied.
     const base = (dateObj instanceof Date) ? dateObj : (dateObj ? new Date(dateObj) : new Date());
-    const utcMs = base.getTime() + base.getTimezoneOffset() * 60000; // convert to true UTC ms
-    return new Date(utcMs + 3 * 3600000);                            // add exactly +3 h
+    // base.getTime() = UTC ms. Add +3 h = +10800000 ms. No local offset used.
+    return new Date(base.getTime() + 10800000);
   }
   function formatISODate(date) {
     const d = getEATDate(date);
@@ -1681,45 +1680,86 @@
     return classStudents.filter(s => !paidRolls.has(String(s.ID)));
   }
 
+  // track which view is showing: 'unpaid' or 'paid'
+  let unpaidFilterView = 'unpaid';
+
+  function getPaidStudents(grade, month) {
+    const paidRolls = new Set();
+    const paidAmounts = {};
+    feeLogs.forEach(f => {
+      const n = normFeeLog(f);
+      const monthMatch = n.session.toLowerCase() === month.toLowerCase();
+      const classMatch = !grade || n.cls === grade || n.cls === '';
+      if (monthMatch && classMatch) {
+        paidRolls.add(n.roll);
+        paidAmounts[n.roll] = (paidAmounts[n.roll] || 0) + (parseFloat(f.amount) || 0);
+      }
+    });
+    const activeRolls = new Set(
+      students
+        .filter(s => String(s.Status).toLowerCase() === 'active' && (!grade || s.Class === grade))
+        .map(s => String(s.ID))
+    );
+    return students
+      .filter(s =>
+        String(s.Status).toLowerCase() === 'active' &&
+        (!grade || s.Class === grade) &&
+        paidRolls.has(String(s.ID)) &&
+        activeRolls.has(String(s.ID))
+      )
+      .map(s => ({ ...s, paidAmount: paidAmounts[String(s.ID)] || 0 }));
+  }
+
   function renderUnpaidFilter() {
+    unpaidFilterView = 'unpaid'; // reset to unpaid view on any filter change
     const grade = document.getElementById('unpaidClassFilter').value;
     const month = document.getElementById('unpaidTermFilter').value;
     const searchVal = (document.getElementById('unpaidSearch')?.value || '').trim();
     const wrap = document.getElementById('unpaidTableWrap');
     const statsEl = document.getElementById('unpaidStats');
 
-    // Total active students in grade (or all) — unfiltered by search for stats
+    // ── Counts ──
     const totalActive = students.filter(s =>
       String(s.Status).toLowerCase() === 'active' && (!grade || s.Class === grade)
     ).length;
 
-    // Paid count: unique rolls that have a matching fee log for this month/grade
     const paidRollsForStats = new Set();
+    let totalCollected = 0;
     feeLogs.forEach(f => {
       const n = normFeeLog(f);
       const monthMatch = n.session.toLowerCase() === month.toLowerCase();
       const classMatch = !grade || n.cls === grade || n.cls === '';
-      if (monthMatch && classMatch) paidRollsForStats.add(n.roll);
+      if (monthMatch && classMatch) {
+        paidRollsForStats.add(n.roll);
+        totalCollected += parseFloat(f.amount) || 0;
+      }
     });
-    // Only count rolls that belong to active students in this grade
     const activeRolls = new Set(
       students
         .filter(s => String(s.Status).toLowerCase() === 'active' && (!grade || s.Class === grade))
         .map(s => String(s.ID))
     );
-    const paidCount = [...paidRollsForStats].filter(r => activeRolls.has(r)).length;
+    const paidCount   = [...paidRollsForStats].filter(r => activeRolls.has(r)).length;
     const unpaidCount = Math.max(0, totalActive - paidCount);
 
     statsEl.style.display = totalActive > 0 ? 'block' : 'none';
     statsEl.innerHTML = `
+      <div style="background:linear-gradient(135deg,#064e3b,#059669);border-radius:12px;padding:12px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="color:rgba(255,255,255,0.8);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">💰 Total Collected — ${month}</div>
+        <div style="color:#fbbf24;font-size:24px;font-weight:800;font-family:var(--mono)">$${totalCollected.toFixed(2)}</div>
+      </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px">
-        <div style="background:#fee2e2;border-radius:10px;padding:10px 16px;flex:1;min-width:100px">
+        <div style="background:#fee2e2;border-radius:10px;padding:10px 16px;flex:1;min-width:100px;cursor:pointer;transition:opacity .15s"
+             onclick="showUnpaidView('unpaid')"
+             title="Click to see unpaid students">
           <div style="font-size:22px;font-weight:800;color:#dc2626;font-family:var(--mono)">${unpaidCount}</div>
-          <div style="font-size:11px;color:#991b1b;font-weight:700;text-transform:uppercase">Unpaid</div>
+          <div style="font-size:11px;color:#991b1b;font-weight:700;text-transform:uppercase">Unpaid ↓</div>
         </div>
-        <div style="background:#d1fae5;border-radius:10px;padding:10px 16px;flex:1;min-width:100px">
+        <div style="background:#d1fae5;border-radius:10px;padding:10px 16px;flex:1;min-width:100px;cursor:pointer;transition:opacity .15s"
+             onclick="showUnpaidView('paid')"
+             title="Click to see paid students">
           <div style="font-size:22px;font-weight:800;color:#059669;font-family:var(--mono)">${paidCount}</div>
-          <div style="font-size:11px;color:#065f46;font-weight:700;text-transform:uppercase">Paid</div>
+          <div style="font-size:11px;color:#065f46;font-weight:700;text-transform:uppercase">Paid ↓</div>
         </div>
         <div style="background:#dbeafe;border-radius:10px;padding:10px 16px;flex:1;min-width:100px">
           <div style="font-size:22px;font-weight:800;color:#2563eb;font-family:var(--mono)">${totalActive}</div>
@@ -1727,24 +1767,75 @@
         </div>
       </div>`;
 
-    const unpaid = getUnpaidStudents(grade, month, searchVal);
+    renderFilteredTable(grade, month, searchVal, wrap, unpaidCount, paidCount);
+  }
 
+  function showUnpaidView(view) {
+    unpaidFilterView = view;
+    const grade     = document.getElementById('unpaidClassFilter').value;
+    const month     = document.getElementById('unpaidTermFilter').value;
+    const searchVal = (document.getElementById('unpaidSearch')?.value || '').trim();
+    const wrap      = document.getElementById('unpaidTableWrap');
+    // update active card styling
+    const cards = document.querySelectorAll('#unpaidStats [onclick]');
+    cards.forEach(c => c.style.opacity = c.getAttribute('onclick').includes(`'${view}'`) ? '1' : '0.55');
+    renderFilteredTable(grade, month, searchVal, wrap);
+  }
+
+  function renderFilteredTable(grade, month, searchVal, wrap) {
     if (!grade && !searchVal) {
-      wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🎓</div><p>Select a grade or search to view unpaid students</p></div>';
+      wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">🎓</div><p>Select a grade or search to view students</p></div>';
       return;
     }
 
+    if (unpaidFilterView === 'paid') {
+      // ── PAID LIST ──
+      let paid = getPaidStudents(grade, month);
+      if (searchVal) {
+        const q = searchVal.toLowerCase();
+        paid = paid.filter(s =>
+          s.Name.toLowerCase().includes(q) ||
+          String(s.ID).includes(q) ||
+          (s.Phone && String(s.Phone).includes(q))
+        );
+      }
+      if (paid.length === 0) {
+        wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>No paid students found for ${month}</p></div>`;
+        return;
+      }
+      let html = `
+        <div style="font-size:11px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding:0 4px">✅ Paid Students — ${month}</div>
+        <table>
+          <thead><tr><th>Roll</th><th>Name</th><th>Grade</th><th>Phone</th><th>Paid</th></tr></thead>
+          <tbody>`;
+      paid.forEach(s => {
+        html += `
+          <tr>
+            <td class="font-mono" style="font-size:12px;color:var(--muted)">#${s.ID}</td>
+            <td><span class="clickable-name" onclick="openStudentSummary('${s.ID}','${s.Class}')">${s.Name}</span></td>
+            <td style="font-size:12px;color:var(--muted)">${s.Class}</td>
+            <td style="font-size:12px;color:var(--muted)">${s.Phone || '—'}</td>
+            <td><span style="font-family:var(--mono);font-size:13px;font-weight:700;color:#059669">$${s.paidAmount.toFixed(2)}</span></td>
+          </tr>`;
+      });
+      html += '</tbody></table>';
+      wrap.innerHTML = html;
+      return;
+    }
+
+    // ── UNPAID LIST (default) ──
+    const unpaid = getUnpaidStudents(grade, month, searchVal);
     if (unpaid.length === 0) {
       wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">🎉</div><p>${searchVal ? 'No matching unpaid students' : 'All students have paid for ' + month + '!'}</p></div>`;
       return;
     }
-
-    let tableHtml = `
+    let html = `
+      <div style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding:0 4px">⚠️ Unpaid Students — ${month}</div>
       <table>
         <thead><tr><th>Roll</th><th>Name</th><th>Grade</th><th>Phone</th><th>Status</th></tr></thead>
         <tbody>`;
     unpaid.forEach(s => {
-      tableHtml += `
+      html += `
         <tr>
           <td class="font-mono" style="font-size:12px;color:var(--muted)">#${s.ID}</td>
           <td><span class="clickable-name" onclick="openStudentSummary('${s.ID}','${s.Class}')">${s.Name}</span></td>
@@ -1753,8 +1844,8 @@
           <td><span class="badge badge-unpaid">Unpaid</span></td>
         </tr>`;
     });
-    tableHtml += '</tbody></table>';
-    wrap.innerHTML = tableHtml;
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
   }
 
   // ════════════════════════════════════
