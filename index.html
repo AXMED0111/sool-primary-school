@@ -1673,7 +1673,12 @@
     document.getElementById('feeTotalVal').textContent = '$' + (base + extra).toFixed(2);
   }
 
-  // ── Helper: normalise a fee log entry to consistent field names ──
+  // ════════════════════════════════════
+  // UNPAID FILTER — month-based + search
+  // Single source of truth: always iterate students, check each against feeLogs.
+  // Never go feeLogs→students (causes cross-class contamination).
+  // ════════════════════════════════════
+
   function normFeeLog(f) {
     return {
       roll:    String(f.roll ?? f.rollNumber ?? f.ID ?? f.id ?? ''),
@@ -1682,92 +1687,73 @@
     };
   }
 
-  // Returns true if this fee log matches the given grade+month filter.
-  // When grade is specified, the log's class must match exactly (empty class = no match).
-  function feeLogMatches(f, grade, month) {
-    const n = normFeeLog(f);
-    const monthMatch = n.session.toLowerCase() === month.toLowerCase();
-    if (!monthMatch) return false;
-    if (grade) return n.cls === grade;   // strict: must match grade, empty cls fails
-    return true;                          // no grade filter: all classes pass
+  // Has student s paid for month? Match by roll AND class (class optional if blank in log).
+  function hasPaid(s, month) {
+    const roll = String(s.ID);
+    const cls  = String(s.Class);
+    const mon  = month.toLowerCase();
+    return feeLogs.some(f => {
+      const n = normFeeLog(f);
+      if (n.session.toLowerCase() !== mon) return false;
+      if (n.roll !== roll) return false;
+      if (n.cls && n.cls !== cls) return false; // class must match if present
+      return true;
+    });
   }
 
-  // Build a Set of roll numbers that have paid for grade+month.
-  // Only includes rolls belonging to active students in that grade.
-  function buildPaidRolls(grade, month) {
-    const paid = new Set();
-    feeLogs.forEach(f => {
-      if (feeLogMatches(f, grade, month)) paid.add(normFeeLog(f).roll);
+  // Total amount paid by student s for month
+  function amountPaid(s, month) {
+    const roll = String(s.ID);
+    const cls  = String(s.Class);
+    const mon  = month.toLowerCase();
+    return feeLogs
+      .filter(f => {
+        const n = normFeeLog(f);
+        return n.session.toLowerCase() === mon &&
+               n.roll === roll &&
+               (!n.cls || n.cls === cls);
+      })
+      .reduce((sum, f) => sum + (parseFloat(f.amount) || 0), 0);
+  }
+
+  function isPhoneQuery(v) {
+    return v && /^[\d\s\+\-]+$/.test(v.trim());
+  }
+
+  function matchesSearch(s, searchVal) {
+    if (!searchVal) return true;
+    const q  = searchVal.toLowerCase();
+    const ph = searchVal.replace(/\s/g, '');
+    return (
+      s.Name.toLowerCase().includes(q) ||
+      String(s.ID).includes(q) ||
+      (s.Phone && String(s.Phone).replace(/\s/g, '').includes(ph))
+    );
+  }
+
+  // Core pool builder — phone search ignores grade filter (parent has kids across classes)
+  function activePool(grade, searchVal) {
+    const phoneSearch = isPhoneQuery(searchVal);
+    return students.filter(s => {
+      if (String(s.Status).toLowerCase() !== 'active') return false;
+      if (grade && !phoneSearch && s.Class !== grade) return false;
+      if (searchVal && !matchesSearch(s, searchVal)) return false;
+      return true;
     });
-    return paid;
   }
 
   function getUnpaidStudents(grade, month, searchVal='') {
-    const q = searchVal.toLowerCase();
-    // Detect if the search looks like a phone number (digits, +, spaces)
-    const isPhoneSearch = searchVal && /^[\d\s\+\-]+$/.test(searchVal.trim());
-
-    let pool = students.filter(s => String(s.Status).toLowerCase() === 'active');
-
-    // When searching by phone: ignore grade filter — a parent phone can span multiple classes.
-    // When searching by name or roll, or no search: apply grade filter normally.
-    if (grade && !isPhoneSearch) pool = pool.filter(s => s.Class === grade);
-
-    if (searchVal) {
-      pool = pool.filter(s =>
-        s.Name.toLowerCase().includes(q) ||
-        String(s.ID).includes(q) ||
-        (s.Phone && String(s.Phone).replace(/\s/g,'').includes(searchVal.replace(/\s/g,'')))
-      );
-    }
-
-    // For paid check: use the student's actual class, not the grade filter
-    // (since phone search may return students across grades)
-    return pool.filter(s => {
-      const effectiveGrade = isPhoneSearch ? s.Class : (grade || s.Class);
-      const paidRolls = buildPaidRolls(isPhoneSearch ? s.Class : grade, month);
-      return !paidRolls.has(String(s.ID));
-    });
+    return activePool(grade, searchVal).filter(s => !hasPaid(s, month));
   }
 
   function getPaidStudents(grade, month, searchVal='') {
-    const q = (searchVal || '').toLowerCase();
-    const isPhoneSearch = searchVal && /^[\d\s\+\-]+$/.test(searchVal.trim());
-
-    // When phone searching: pool across all grades
-    let pool = students.filter(s =>
-      String(s.Status).toLowerCase() === 'active' &&
-      (isPhoneSearch || !grade || s.Class === grade)
-    );
-
-    if (searchVal) {
-      pool = pool.filter(s =>
-        s.Name.toLowerCase().includes(q) ||
-        String(s.ID).includes(q) ||
-        (s.Phone && String(s.Phone).replace(/\s/g,'').includes(searchVal.replace(/\s/g,'')))
-      );
-    }
-
-    // Sum amounts per roll+class from feeLogs
-    const paidAmounts = {};
-    feeLogs.forEach(f => {
-      const n = normFeeLog(f);
-      if (n.session.toLowerCase() === month.toLowerCase()) {
-        const key = `${n.cls}_${n.roll}`;
-        paidAmounts[key] = (paidAmounts[key] || 0) + (parseFloat(f.amount) || 0);
-      }
-    });
-
-    return pool
-      .filter(s => {
-        const paidRolls = buildPaidRolls(s.Class, month);
-        return paidRolls.has(String(s.ID));
-      })
-      .map(s => ({
-        ...s,
-        paidAmount: paidAmounts[`${s.Class}_${s.ID}`] || 0
-      }));
+    return activePool(grade, searchVal)
+      .filter(s => hasPaid(s, month))
+      .map(s => ({ ...s, paidAmount: amountPaid(s, month) }));
   }
+
+  // track which view is showing: 'unpaid' or 'paid'
+  let unpaidFilterView = 'unpaid';
 
   function renderUnpaidFilter() {
     unpaidFilterView = 'unpaid';
@@ -1777,48 +1763,41 @@
     const wrap      = document.getElementById('unpaidTableWrap');
     const statsEl   = document.getElementById('unpaidStats');
 
-    // ── Counts — derive everything from the student list, not feeLogs ──
-    const activeStudents = students.filter(s =>
-      String(s.Status).toLowerCase() === 'active' && (!grade || s.Class === grade)
-    );
-    const totalActive = activeStudents.length;
+    // Stats always use grade filter only (no search) — shows class/school totals
+    const scopePool    = activePool(grade, '');
+    const paidScope    = scopePool.filter(s => hasPaid(s, month));
+    const unpaidScope  = scopePool.filter(s => !hasPaid(s, month));
+    const displayTotal  = scopePool.length;
+    const displayPaid   = paidScope.length;
+    const displayUnpaid = unpaidScope.length;
+    const bannerAmt     = paidScope.reduce((sum, s) => sum + amountPaid(s, month), 0);
 
-    // Build paid rolls and total collected
-    const paidRolls = buildPaidRolls(grade, month);
-    let totalCollected = 0;
-    feeLogs.forEach(f => {
-      if (feeLogMatches(f, grade, month)) totalCollected += parseFloat(f.amount) || 0;
-    });
-
-    // paidCount = active students whose roll is in paidRolls (source of truth)
-    const paidCount   = activeStudents.filter(s => paidRolls.has(String(s.ID))).length;
-    const unpaidCount = totalActive - paidCount;
-
-    statsEl.style.display = totalActive > 0 ? 'block' : 'none';
+    statsEl.style.display = displayTotal > 0 ? 'block' : 'none';
     statsEl.innerHTML = `
       <div style="background:linear-gradient(135deg,#064e3b,#059669);border-radius:12px;padding:12px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
-        <div style="color:rgba(255,255,255,0.8);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">💰 Total Collected — ${month}</div>
-        <div style="color:#fbbf24;font-size:24px;font-weight:800;font-family:var(--mono)">$${totalCollected.toFixed(2)}</div>
+        <div style="color:rgba(255,255,255,0.8);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">💰 Total Collected — ${month}${grade ? ' · ' + grade : ''}</div>
+        <div style="color:#fbbf24;font-size:24px;font-weight:800;font-family:var(--mono)">$${bannerAmt.toFixed(2)}</div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px">
         <div style="background:#fee2e2;border-radius:10px;padding:10px 16px;flex:1;min-width:100px;cursor:pointer;transition:opacity .15s"
              onclick="showUnpaidView('unpaid')" title="Click to see unpaid students">
-          <div style="font-size:22px;font-weight:800;color:#dc2626;font-family:var(--mono)">${unpaidCount}</div>
+          <div style="font-size:22px;font-weight:800;color:#dc2626;font-family:var(--mono)">${displayUnpaid}</div>
           <div style="font-size:11px;color:#991b1b;font-weight:700;text-transform:uppercase">Unpaid ↓</div>
         </div>
         <div style="background:#d1fae5;border-radius:10px;padding:10px 16px;flex:1;min-width:100px;cursor:pointer;transition:opacity .15s"
              onclick="showUnpaidView('paid')" title="Click to see paid students">
-          <div style="font-size:22px;font-weight:800;color:#059669;font-family:var(--mono)">${paidCount}</div>
+          <div style="font-size:22px;font-weight:800;color:#059669;font-family:var(--mono)">${displayPaid}</div>
           <div style="font-size:11px;color:#065f46;font-weight:700;text-transform:uppercase">Paid ↓</div>
         </div>
         <div style="background:#dbeafe;border-radius:10px;padding:10px 16px;flex:1;min-width:100px">
-          <div style="font-size:22px;font-weight:800;color:#2563eb;font-family:var(--mono)">${totalActive}</div>
+          <div style="font-size:22px;font-weight:800;color:#2563eb;font-family:var(--mono)">${displayTotal}</div>
           <div style="font-size:11px;color:#1e40af;font-weight:700;text-transform:uppercase">Total</div>
         </div>
       </div>`;
 
     renderFilteredTable(grade, month, searchVal, wrap);
   }
+
 
   function showUnpaidView(view) {
     unpaidFilterView = view;
