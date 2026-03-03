@@ -904,7 +904,7 @@
   </div><!-- /appView -->
 
   <script>
-  const API = 'https://script.google.com/macros/s/AKfycbwovkmt8oY_BI_pZPWTVULWB3ct9Z25FXnveulsVDa4IIFmJ26mSEkf9tuHbXz6GrjqXg/exec';
+  const API = 'https://script.google.com/macros/s/AKfycbyOI66mHCTLdE1Tn9HyO65gLoRQZp067W0ju59kVJDQ_hAd0lzyQJaMnkoqfGX2rL-Gyw/exec';
 
   let user = null, students = [], attLogs = [], attSummary = {}, currentAttStatus = 'present';
   let studentCache = {}, classListCache = {}, feeLogs = [];
@@ -1206,13 +1206,23 @@
     }
     document.getElementById('modalMeta').innerHTML = metaHtml;
 
-    const relevant = attLogs.filter(l =>
+    // ── Group by DATE — each calendar day = 1 day regardless of sessions ──
+    const byDate = {};
+    attLogs.filter(l =>
       String(l.roll) === String(roll) && l.class === grade &&
       (l.status === 'absent' || l.status === 'sick' || l.status === 'late')
-    );
-    const abs = relevant.filter(l => l.status === 'absent').length;
-    const sick = relevant.filter(l => l.status === 'sick').length;
-    const late = relevant.filter(l => l.status === 'late').length;
+    ).forEach(l => {
+      const dateKey = normalizeDateForFilter(l.date);
+      if (!byDate[dateKey]) byDate[dateKey] = { date: l.date, sessions: [], statuses: new Set() };
+      if (!byDate[dateKey].sessions.includes(l.session)) byDate[dateKey].sessions.push(l.session);
+      byDate[dateKey].statuses.add(l.status);
+    });
+
+    // Count unique days per status type
+    const dayEntries = Object.values(byDate);
+    const abs  = dayEntries.filter(d => d.statuses.has('absent')).length;
+    const sick = dayEntries.filter(d => d.statuses.has('sick') && !d.statuses.has('absent')).length;
+    const late = dayEntries.filter(d => d.statuses.has('late') && !d.statuses.has('absent') && !d.statuses.has('sick')).length;
 
     document.getElementById('modalPills').innerHTML = `
       <div class="summary-pill"><div class="pval" style="color:var(--danger)">${abs}</div><div class="plabel">Absent</div></div>
@@ -1220,16 +1230,27 @@
       <div class="summary-pill"><div class="pval" style="color:var(--warning)">${late}</div><div class="plabel">Late</div></div>`;
 
     let historyHtml = '';
-    if (relevant.length === 0) {
+    if (dayEntries.length === 0) {
       historyHtml = `<p style="color:var(--muted);text-align:center;padding:20px 0;font-size:13px">No exception records found.</p>`;
     } else {
-      const sorted = [...relevant].sort((a,b) => new Date(b.date) - new Date(a.date));
+      // Sort newest first
+      dayEntries.sort((a,b) => new Date(b.date) - new Date(a.date));
       historyHtml = `<ul class="history-list">`;
-      sorted.forEach(l => {
+      dayEntries.forEach(d => {
+        // Sessions on one line: "Morning · After Break"
+        const sessionLabel = d.sessions
+          .sort() // Morning before After Break alphabetically → reverse to get Morning first
+          .reverse()
+          .join(' · ');
+        const statusArr   = [...d.statuses];
+        const primary     = statusArr.includes('absent') ? 'absent' : statusArr.includes('sick') ? 'sick' : 'late';
+        const statusLabel = statusArr.join(' / ');
         historyHtml += `
           <li class="history-item">
-            <span style="font-size:13px">${formatTableDate(l.date)} <span style="color:var(--muted);font-size:11px">(${l.session})</span></span>
-            <span class="badge badge-${l.status}">${l.status}</span>
+            <span style="font-size:13px">${formatTableDate(d.date)}
+              <span style="color:var(--muted);font-size:11px">(${sessionLabel})</span>
+            </span>
+            <span class="badge badge-${primary}">${statusLabel}</span>
           </li>`;
       });
       historyHtml += `</ul>`;
@@ -1298,11 +1319,18 @@
     doc.text(`Status: ${student.Status}${isAdmin && student.Phone ? '  ·  Phone: ' + student.Phone : ''}${isAdmin && student.MotherName ? '  ·  Mother: ' + student.MotherName : ''}`, 14, 29);
     doc.setTextColor(0,0,0);
 
-    // Summary pills
-    const abs   = logs.filter(l=>l.status==='absent').length;
-    const sick  = logs.filter(l=>l.status==='sick').length;
-    const late  = logs.filter(l=>l.status==='late').length;
-    const pres  = logs.filter(l=>l.status==='present').length;
+    // Summary pills — count unique days per status
+    const byDateExp = {};
+    logs.forEach(l => {
+      const dk = normalizeDateForFilter(l.date);
+      if (!byDateExp[dk]) byDateExp[dk] = new Set();
+      byDateExp[dk].add(l.status);
+    });
+    const dayEntriesExp = Object.values(byDateExp);
+    const abs  = dayEntriesExp.filter(s => s.has('absent')).length;
+    const sick = dayEntriesExp.filter(s => s.has('sick') && !s.has('absent')).length;
+    const late = dayEntriesExp.filter(s => s.has('late') && !s.has('absent') && !s.has('sick')).length;
+    const pres = logs.filter(l=>l.status==='present').length;
 
     doc.setFontSize(10); doc.setFont(undefined,'bold');
     doc.setFillColor(220,38,38); doc.roundedRect(14,36,40,14,3,3,'F');
